@@ -14,8 +14,7 @@ func LoginUser(username, password string) error {
 
 	query := fmt.Sprintf("SELECT password_sha256 FROM users WHERE user = '%s'", username)
 	var storedPasswordSha256 string
-	err := db.GetDBHandle().QueryRow(query).Scan(&storedPasswordSha256)
-	if err != nil {
+	if err := db.GetDBHandle().QueryRow(query).Scan(&storedPasswordSha256); err != nil {
 		if err == sql.ErrNoRows {
 			return fmt.Errorf("user does not exist")
 		} else {
