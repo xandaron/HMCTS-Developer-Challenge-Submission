@@ -3,6 +3,7 @@ package session
 import (
 	"crypto/rand"
 	"errors"
+	"net/http"
 	"time"
 )
 
@@ -15,10 +16,39 @@ type Session struct {
 
 var sessions = make(map[string]Session)
 
-func CreateUserSession(userID uint) (string, time.Time) {
+var errSessionExpired = errors.New("session-expired")
+var errSessionNotFound = errors.New("session-not-found")
+
+func CreateUserSessionCookie(w http.ResponseWriter, userID uint) {
+	sessionID, sessionTimout := createUserSession(userID)
+	SetCookie(w, "session_id", sessionID, sessionTimout)
+}
+
+func GetUserIDFromSession(w http.ResponseWriter, r *http.Request) (uint, error) {
+	sessionID, err := getSessionID(w, r)
+	if err != nil {
+		return 0, err
+	}
+
+	userID, err := getUserID(sessionID)
+	if err != nil {
+		return 0, err
+	}
+
+	return userID, nil
+}
+
+func DeleteUserSessionCookie(w http.ResponseWriter, r *http.Request) {
+	if sessionID, err := getSessionID(w, r); err == nil {
+		delete(sessions, sessionID)
+		SetCookie(w, "session_id", "", time.Time{})
+	}
+}
+
+func createUserSession(userID uint) (string, time.Time) {
 	sessionID := rand.Text()
 	timeStamp := time.Now()
-	
+
 	sessions[sessionID] = Session{
 		UserID:    userID,
 		Timestamp: timeStamp,
@@ -27,21 +57,33 @@ func CreateUserSession(userID uint) (string, time.Time) {
 	return sessionID, timeStamp.Add(sessionTimeout)
 }
 
-func GetUserID(sessionID string) (uint, error) {
+func getSessionID(w http.ResponseWriter, r *http.Request) (string, error) {
+	cookie, err := r.Cookie("session_id")
+	if err != nil {
+		return "", err
+	}
+
+	sessionID := cookie.Value
+	if time.Since(sessions[sessionID].Timestamp) > sessionTimeout {
+		delete(sessions, sessionID)
+		SetCookie(w, "session_id", "", time.Time{})
+		return "", errSessionExpired
+	}
+
+	sessions[sessionID] = Session{
+		UserID:    sessions[sessionID].UserID,
+		Timestamp: time.Now(),
+	}
+
+	return sessionID, nil
+}
+
+func getUserID(sessionID string) (uint, error) {
 	session, exists := sessions[sessionID]
 
 	if !exists {
-		return 0, errors.New("session not found")
+		return 0, errSessionNotFound
 	}
-
-	if time.Since(session.Timestamp) > sessionTimeout {
-		delete(sessions, sessionID)
-		return 0, errors.New("session expired")
-	}
-
-	// Need to update the cookie timestamp
-	session.Timestamp = time.Now()
-	sessions[sessionID] = session
 
 	return session.UserID, nil
 }
