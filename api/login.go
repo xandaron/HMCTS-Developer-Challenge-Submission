@@ -6,11 +6,16 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 )
 
-func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+var errWrongPassword = fmt.Errorf("incorrect-password")
+var errUserNotFound = fmt.Errorf("user-not-found")
+var errEmptyUsernameOrPassword = fmt.Errorf("username-password-cannot-be-empty")
+
+func HandleLogin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost && r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -19,48 +24,45 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	userID, err := loginUser(username, password)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+	if err == errWrongPassword || err == errUserNotFound || err == errEmptyUsernameOrPassword {
+		http.Redirect(w, r, fmt.Sprintf("/login?error=%s", err.Error()), http.StatusSeeOther)
+		return
+	} else if err != nil {
+		log.Printf("HandleLogin: %s\n", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	sessionID, sessionTimout := session.CreateUserSession(userID)
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_id",
-		Value:    sessionID,
-		Path:     "/",
-		Expires:  sessionTimout,
-		HttpOnly: true,
-		Secure:   false, // Set to true in production
-	})
-
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Login successful"))
+	session.CreateUserSessionCookie(w, userID)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func loginUser(username, password string) (uint, error) {
 	if username == "" || password == "" {
-		return 0, fmt.Errorf("username and password cannot be empty")
+		return 0, errEmptyUsernameOrPassword
 	}
 
 	query := fmt.Sprintf("SELECT id, password_sha256 FROM users WHERE name = '%s'", username)
-	var queryResponse struct {
-		ID             uint
-		PasswordSha256 string
+
+	dbHandle, err := db.GetDBHandle()
+	if err != nil {
+		return 0, err
 	}
 
-	if err := db.GetDBHandle().QueryRow(query).Scan(&queryResponse); err != nil {
+	var userID uint
+	var passwordSha256 string
+	if err := dbHandle.QueryRow(query).Scan(&userID, &passwordSha256); err != nil {
 		if err == sql.ErrNoRows {
-			return 0, fmt.Errorf("user does not exist")
+			return 0, errUserNotFound
 		} else {
 			return 0, err
 		}
 	}
 
 	hashedPassword := sha256.Sum256([]byte(password))
-	if queryResponse.PasswordSha256 != string(hashedPassword[:]) {
-		return 0, fmt.Errorf("incorrect password")
+	if passwordSha256 != string(hashedPassword[:]) {
+		return 0, errWrongPassword
 	}
 
-	return queryResponse.ID, nil
+	return userID, nil
 }
