@@ -44,9 +44,10 @@ func Disconnect() error {
 	return err
 }
 
-func GetDBHandle() *sql.DB {
+func GetDBHandle() (*sql.DB, error) {
+	var err error = nil
 	if db.Ping() != nil {
-		Connect()
+		err = Connect()
 	}
-	return db
+	return db, err
 }
