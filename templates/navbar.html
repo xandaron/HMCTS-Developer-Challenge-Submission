@@ -1,0 +1,29 @@
+{{ define "navbar" }}
+<nav class="bg-white shadow">
+  <div class="mx-auto max-w-7xl">
+    <div class="relative flex h-16 items-center justify-between">
+      <div
+        class="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start"
+      >
+        <div class="hidden sm:ml-6 sm:block">
+          <div class="flex">
+            <a href="/" class="flex shrink-0 items-center px-3"
+              ><img class="h-8 w-auto" src="/logo.png" alt="logo"
+            /></a>
+            <a
+              href="/signup"
+              class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
+              >Sign Up</a
+            >
+            <a
+              href="/login"
+              class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
+              >Log In</a
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+{{ end }}

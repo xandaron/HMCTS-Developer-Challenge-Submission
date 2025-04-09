@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HMCTS Dev Challenge</title>
+    <link href="/static/css/output.css" rel="stylesheet">
+</head>
+<body>
+    {{ template "navbar" . }}
+    <main>
+        {{ block "content" . }}{{ end }}
+    </main>
+    <script src="/static/js/scripts.js"></script>
+</body>
+</html>
