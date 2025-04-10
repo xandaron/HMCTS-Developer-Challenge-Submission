@@ -1,0 +1,63 @@
+{{ define "content" }}
+<script>
+  async function getTasks() {
+    const response = await fetch("/api/tasks", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (response.ok) {
+      const tasks = await response.json();
+      const tbody = document.querySelector("tbody");
+      tbody.innerHTML = "";
+
+      tasks.forEach((task) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+                    <td class="text-center">#${task.id}</td>
+                    <td>${task.name}</td>
+                    <td>${task.description}</td>
+                    <td class="text-center">${task.status}</td>
+                    <td class="text-center">${new Date(
+                      task.deadline
+                    ).toLocaleString()}</td>
+                    <td class="text-center">${new Date(
+                      task.created_at
+                    ).toLocaleString()}</td>
+                `;
+        tbody.appendChild(row);
+      });
+    } else {
+      console.error("Failed to fetch tasks:", response.statusText);
+    }
+  }
+
+  getTasks();
+</script>
+<div class="flex items-start justify-center min-h-screen bg-gray-100 pt-12">
+  <div class="w-full max-w-7/10">
+    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+      <a
+        href="/tasks/add"
+        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >Add Task</a
+      >
+      <table class="table-fixed w-full mt-4 bg-gray-300">
+        <thead>
+          <tr class="border text-white bg-black border-gray-500">
+            <th class="w-1/10">ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Deadline</th>
+            <th>Creation Date</th>
+          </tr>
+        </thead>
+        <tbody class="border border-gray-500"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{{ end }}
