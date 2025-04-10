@@ -1,27 +1,52 @@
 {{ define "navbar" }}
 <nav class="bg-white shadow">
-  <div class="mx-auto max-w-7xl">
+  <div class="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
     <div class="relative flex h-16 items-center justify-between">
+      <!-- Left side of the navbar -->
       <div
         class="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start"
       >
-        <div class="hidden sm:ml-6 sm:block">
-          <div class="flex">
-            <a href="/" class="flex shrink-0 items-center px-3"
-              ><img class="h-8 w-auto" src="/logo.png" alt="logo"
-            /></a>
+        <a href="/" class="flex shrink-0 items-center">
+          <img
+            class="h-8 w-auto"
+            src="/static/assets/logo.png"
+            alt="Your Company"
+          />
+        </a>
+        <!-- <div class="hidden sm:ml-6 sm:block">
+          <div class="flex space-x-4">
             <a
-              href="/signup"
-              class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
-              >Sign Up</a
+              href="#"
+              class="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+              >Team</a
             >
             <a
-              href="/login"
-              class="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
-              >Log In</a
+              href="#"
+              class="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+              >Projects</a
+            >
+            <a
+              href="#"
+              class="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+              >Calendar</a
             >
           </div>
-        </div>
+        </div> -->
+      </div>
+      <!-- Right side of the navbar -->
+      <div
+        class="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0"
+      >
+        <a
+          href="/signup"
+          class="hidden rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 sm:block"
+          >Sign Up</a
+        >
+        <a
+          href="/login"
+          class="hidden rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 sm:block"
+          >Login</a
+        >
       </div>
     </div>
   </div>
