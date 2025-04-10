@@ -2,9 +2,9 @@ package api
 
 import (
 	"HMCTS-Developer-Challenge/database"
+	"HMCTS-Developer-Challenge/errors"
 	"crypto/sha256"
 	"fmt"
-	"log"
 	"net/http"
 )
 
@@ -23,8 +23,7 @@ func HandleSignUp(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, fmt.Sprintf("/signup?error=%s", err.Error()), http.StatusSeeOther)
 		return
 	} else if err != nil {
-		log.Printf("HandleSignUp: %s\n", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		errors.HandleServerError(w, err, "signup.go: HandleSignUp - createUser")
 		return
 	}
 

@@ -3,6 +3,7 @@ package main
 import (
 	"HMCTS-Developer-Challenge/api"
 	"HMCTS-Developer-Challenge/database"
+	"HMCTS-Developer-Challenge/errors"
 	"HMCTS-Developer-Challenge/session"
 	"bytes"
 	"html/template"
@@ -25,7 +26,7 @@ func main() {
 		return
 	}
 
-	http.HandleFunc("/", servePageWithRedirect(templates[HomePage]))
+	http.HandleFunc("/", servePageWithRedirect(templates[HomePage], nil))
 
 	http.HandleFunc("/login", servePageWithForm(templates[LoginSignUpPage], "/api/login", "Login"))
 	http.HandleFunc("/api/login", apiWrapper(api.HandleLogin))
@@ -55,7 +56,7 @@ func loadTemplates() {
 }
 
 type pageData struct {
-	IsLoggedIn   bool
+	IsLoggedIn bool
 	Action     string
 	SubmitText string
 }
@@ -74,29 +75,32 @@ func servePageWithForm(template *template.Template, action string, submitText st
 
 		var buf bytes.Buffer
 		if err := template.Execute(&buf, &pageData{IsLoggedIn: loggedIn, Action: action, SubmitText: submitText}); err != nil {
-			log.Printf("serverPageWithForm: %s\n", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			errors.HandleServerError(w, err, "main.go: servePageWithForm - Execute")
+			return
 		}
 		buf.WriteTo(w)
 	}
 }
 
-func servePageWithRedirect(template *template.Template) http.HandlerFunc {
+func servePageWithRedirect(template *template.Template, fn func(w http.ResponseWriter, r *http.Request, userID uint)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		if _, err := session.GetUserIDFromSession(w, r); err != nil {
+		userID, err := session.GetUserIDFromSession(w, r)
+		if err != nil {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
 
+		fn(w, r, userID)
+
 		var buf bytes.Buffer
 		if err := template.Execute(&buf, &pageData{IsLoggedIn: true}); err != nil {
-			log.Printf("serverPageWithRedirect: %s\n", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			errors.HandleServerError(w, err, "main.go: servePageWithRedirect - Execute")
+			return
 		}
 		buf.WriteTo(w)
 	}
