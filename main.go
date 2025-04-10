@@ -63,24 +63,26 @@ func serveHomePage(w http.ResponseWriter, r *http.Request) {
 		Name string
 	}
 
-	var data *Data
+	var data *Data = nil
 	if userID, err := session.GetUserIDFromSession(w, r); err == nil {
 		if name, err := db.GetUserName(userID); err == nil {
 			data = &Data{
 				Name: name,
 			}
 		} else {
-			data = &Data{
-				Name: "Guest",
-			}
-		}
-	} else {
-		data = &Data{
-			Name: "Guest",
+			log.Printf("serverHomePage: %s\n", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
 		}
 	}
 
+	if data == nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
 	if err := templates[HomePage].Execute(w, data); err != nil {
+		log.Printf("serverHomePage: %s\n", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
@@ -93,6 +95,7 @@ func servePage(template *template.Template) http.HandlerFunc {
 		}
 
 		if err := template.Execute(w, nil); err != nil {
+			log.Printf("serverPage: %s\n", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 	}
