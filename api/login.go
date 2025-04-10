@@ -42,8 +42,6 @@ func loginUser(username, password string) (uint, error) {
 		return 0, errEmptyUsernameOrPassword
 	}
 
-	query := fmt.Sprintf("SELECT id, password_sha256 FROM users WHERE name = '%s'", username)
-
 	dbHandle, err := db.GetDBHandle()
 	if err != nil {
 		return 0, err
@@ -51,7 +49,7 @@ func loginUser(username, password string) (uint, error) {
 
 	var userID uint
 	var passwordSha256 string
-	if err := dbHandle.QueryRow(query).Scan(&userID, &passwordSha256); err != nil {
+	if err := dbHandle.QueryRow("SELECT id, password_sha256 FROM users WHERE name = ?", username).Scan(&userID, &passwordSha256); err != nil {
 		if err == sql.ErrNoRows {
 			return 0, errUserNotFound
 		} else {

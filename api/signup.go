@@ -43,26 +43,22 @@ func createUser(username, password string) error {
 		return errUserExists
 	}
 
-	query := fmt.Sprintf("INSERT INTO users (name, password_sha256) VALUES ('%s', '%s')", username, sha256.Sum256([]byte(password)))
-
 	dbHandle, err := db.GetDBHandle()
 	if err != nil {
 		return err
 	}
-	_, err = dbHandle.Exec(query)
+	_, err = dbHandle.Exec("INSERT INTO users (name, password_sha256) VALUES (?, ?)", username, sha256.Sum256([]byte(password)))
 	return err
 }
 
 func checkUserExists(username string) (bool, error) {
-	query := fmt.Sprintf("SELECT COUNT(1) FROM users WHERE name='%s'", username)
-
 	dbHandle, err := db.GetDBHandle()
 	if err != nil {
 		return false, err
 	}
 
 	var count int
-	if err := dbHandle.QueryRow(query).Scan(&count); err != nil {
+	if err := dbHandle.QueryRow("SELECT COUNT(1) FROM users WHERE name = ?", username).Scan(&count); err != nil {
 		return false, err
 	}
 	return count > 0, nil
