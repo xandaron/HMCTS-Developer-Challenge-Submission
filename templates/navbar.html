@@ -37,6 +37,13 @@
       <div
         class="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0"
       >
+        {{ if .IsLoggedIn }}
+        <a
+          href="/api/logout"
+          class="hidden rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 sm:block"
+          >Logout</a
+        >
+        {{ else }}
         <a
           href="/signup"
           class="hidden rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 sm:block"
@@ -47,6 +54,7 @@
           class="hidden rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 sm:block"
           >Login</a
         >
+        {{ end }}
       </div>
     </div>
   </div>

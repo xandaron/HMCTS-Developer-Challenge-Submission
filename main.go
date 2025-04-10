@@ -4,6 +4,7 @@ import (
 	"HMCTS-Developer-Challenge/api"
 	"HMCTS-Developer-Challenge/database"
 	"HMCTS-Developer-Challenge/session"
+	"bytes"
 	"html/template"
 	"log"
 	"net/http"
@@ -26,10 +27,12 @@ func main() {
 
 	http.HandleFunc("/", servePageWithRedirect(templates[HomePage]))
 
-	http.HandleFunc("/login", servePageWithForm(templates[LoginSignUpPage], &FormData{Action: "/api/login", SubmitText: "Login"}))
+	http.HandleFunc("/login", servePageWithForm(templates[LoginSignUpPage], "/api/login", "Login"))
 	http.HandleFunc("/api/login", apiWrapper(api.HandleLogin))
+	http.HandleFunc("/api/logout", apiWrapper(api.HandleLogout))
 
-	http.HandleFunc("/signup", servePageWithForm(templates[LoginSignUpPage], &FormData{Action: "/api/signup", SubmitText: "Create Account"}))
+	// You probably don't want to allow users to sign up. This is just for testing purposes.
+	http.HandleFunc("/signup", servePageWithForm(templates[LoginSignUpPage], "/api/signup", "Create Account"))
 	http.HandleFunc("/api/signup", apiWrapper(api.HandleSignUp))
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
@@ -51,22 +54,30 @@ func loadTemplates() {
 	templates[LoginSignUpPage] = template.Must(template.ParseFiles(baseTemplate, navbarTemplate, "./templates/login-signup_form.html"))
 }
 
-type FormData struct {
+type pageData struct {
+	IsLoggedIn   bool
 	Action     string
 	SubmitText string
 }
 
-func servePageWithForm(template *template.Template, data any) http.HandlerFunc {
+func servePageWithForm(template *template.Template, action string, submitText string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		if err := template.Execute(w, data); err != nil {
-			log.Printf("serverPage: %s\n", err)
+		loggedIn := false
+		if _, err := session.GetUserIDFromSession(w, r); err == nil {
+			loggedIn = true
+		}
+
+		var buf bytes.Buffer
+		if err := template.Execute(&buf, &pageData{IsLoggedIn: loggedIn, Action: action, SubmitText: submitText}); err != nil {
+			log.Printf("serverPageWithForm: %s\n", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
+		buf.WriteTo(w)
 	}
 }
 
@@ -82,10 +93,12 @@ func servePageWithRedirect(template *template.Template) http.HandlerFunc {
 			return
 		}
 
-		if err := template.Execute(w, nil); err != nil {
-			log.Printf("serverPage: %s\n", err)
+		var buf bytes.Buffer
+		if err := template.Execute(&buf, &pageData{IsLoggedIn: true}); err != nil {
+			log.Printf("serverPageWithRedirect: %s\n", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
+		buf.WriteTo(w)
 	}
 }
 
