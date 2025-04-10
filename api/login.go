@@ -7,25 +7,37 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"fmt"
+	"encoding/json"
 	"net/http"
 )
 
-var errWrongPassword = fmt.Errorf("incorrect-password")
-var errUserNotFound = fmt.Errorf("user-not-found")
-var errEmptyUsernameOrPassword = fmt.Errorf("username-password-cannot-be-empty")
+var errWrongPassword = fmt.Errorf("incorrect password")
+var errUserNotFound = fmt.Errorf("user not found")
+var errEmptyUsernameOrPassword = fmt.Errorf("empty username or password")
 
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost && r.Method != http.MethodGet {
+	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	username := r.FormValue("username")
-	password := r.FormValue("password")
+	var jsonData struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&jsonData); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
 
-	userID, err := loginUser(username, password)
+	userID, err := loginUser(jsonData.Username, jsonData.Password)
 	if err == errWrongPassword || err == errUserNotFound || err == errEmptyUsernameOrPassword {
-		http.Redirect(w, r, fmt.Sprintf("/login?error=%s", err.Error()), http.StatusSeeOther)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		if err := json.NewEncoder(w).Encode(map[string]string{"message": err.Error()}); err != nil {
+			errors.HandleServerError(w, err, "login.go: HandleLogin - Encode")
+			return
+		}
 		return
 	} else if err != nil {
 		errors.HandleServerError(w, err, "login.go: HandleLogin - loginUser")
@@ -33,7 +45,8 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session.CreateUserSessionCookie(w, userID)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func loginUser(username, password string) (uint, error) {

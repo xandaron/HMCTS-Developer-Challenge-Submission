@@ -47,11 +47,11 @@ func HandleGetTasks(w http.ResponseWriter, r *http.Request, userID uint) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(tasks); err != nil {
 		errors.HandleServerError(w, err, "task.go: HandleTasks - Encode")
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func HandleAddTask(w http.ResponseWriter, r *http.Request, userID uint) {

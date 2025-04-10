@@ -3,7 +3,9 @@ package api
 import (
 	"HMCTS-Developer-Challenge/database"
 	"HMCTS-Developer-Challenge/errors"
+	"HMCTS-Developer-Challenge/session"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"net/http"
 )
@@ -16,18 +18,36 @@ func HandleSignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := r.FormValue("username")
-	password := r.FormValue("password")
+	var jsonData struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&jsonData); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
 
-	if err := createUser(username, password); err == errUserExists || err == errEmptyUsernameOrPassword {
-		http.Redirect(w, r, fmt.Sprintf("/signup?error=%s", err.Error()), http.StatusSeeOther)
+	if err := createUser(jsonData.Username, jsonData.Password); err == errUserExists || err == errEmptyUsernameOrPassword {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		if err := json.NewEncoder(w).Encode(map[string]string{"message": err.Error()}); err != nil {
+			errors.HandleServerError(w, err, "login.go: HandleLogin - Encode")
+			return
+		}
 		return
 	} else if err != nil {
 		errors.HandleServerError(w, err, "signup.go: HandleSignUp - createUser")
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/api/login?username=%s&password=%s", username, password), http.StatusSeeOther)
+	userID, err := db.GetUserID(jsonData.Username)
+	if err != nil {
+		errors.HandleServerError(w, err, "signup.go: HandleSignUp - GetUserID")
+		return
+	}
+	session.CreateUserSessionCookie(w, userID)
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func createUser(username, password string) error {
@@ -46,7 +66,9 @@ func createUser(username, password string) error {
 	if err != nil {
 		return err
 	}
-	_, err = dbHandle.Exec("INSERT INTO users (name, password_sha256) VALUES (?, ?)", username, sha256.Sum256([]byte(password)))
+
+	passwordSha256 := sha256.Sum256([]byte(password))
+	_, err = dbHandle.Exec("INSERT INTO users (name, password_sha256) VALUES (?, ?)", username, string(passwordSha256[:]))
 	return err
 }
 
