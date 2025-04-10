@@ -339,6 +339,9 @@
   .items-center {
     align-items: center;
   }
+  .items-start {
+    align-items: flex-start;
+  }
   .justify-between {
     justify-content: space-between;
   }
@@ -419,6 +422,9 @@
   }
   .pt-6 {
     padding-top: calc(var(--spacing) * 6);
+  }
+  .pt-12 {
+    padding-top: calc(var(--spacing) * 12);
   }
   .pr-2 {
     padding-right: calc(var(--spacing) * 2);

@@ -11,8 +11,7 @@ import (
 
 const (
 	HomePage = iota
-	LoginPage
-	SignUpPage
+	LoginSignUpPage
 )
 
 var templates = make([]*template.Template, 3)
@@ -25,12 +24,12 @@ func main() {
 		return
 	}
 
-	http.HandleFunc("/", serveHomePage)
+	http.HandleFunc("/", servePageWithRedirect(templates[HomePage]))
 
-	http.HandleFunc("/login", servePage(templates[LoginPage]))
+	http.HandleFunc("/login", servePageWithForm(templates[LoginSignUpPage], &FormData{Action: "/api/login", SubmitText: "Login"}))
 	http.HandleFunc("/api/login", apiWrapper(api.HandleLogin))
 
-	http.HandleFunc("/signup", servePage(templates[SignUpPage]))
+	http.HandleFunc("/signup", servePageWithForm(templates[LoginSignUpPage], &FormData{Action: "/api/signup", SubmitText: "Create Account"}))
 	http.HandleFunc("/api/signup", apiWrapper(api.HandleSignUp))
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
@@ -49,48 +48,37 @@ func loadTemplates() {
 	const baseTemplate = "./templates/base.html"
 	const navbarTemplate = "./templates/navbar.html"
 	templates[HomePage] = template.Must(template.ParseFiles(baseTemplate, navbarTemplate, "./templates/home.html"))
-	templates[LoginPage] = template.Must(template.ParseFiles(baseTemplate, navbarTemplate, "./templates/login.html"))
-	templates[SignUpPage] = template.Must(template.ParseFiles(baseTemplate, navbarTemplate, "./templates/signup.html"))
+	templates[LoginSignUpPage] = template.Must(template.ParseFiles(baseTemplate, navbarTemplate, "./templates/login-signup_form.html"))
 }
 
-func serveHomePage(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	type Data struct {
-		Name string
-	}
-
-	var data *Data = nil
-	if userID, err := session.GetUserIDFromSession(w, r); err == nil {
-		if name, err := db.GetUserName(userID); err == nil {
-			data = &Data{
-				Name: name,
-			}
-		} else {
-			log.Printf("serverHomePage: %s\n", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	if data == nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	if err := templates[HomePage].Execute(w, data); err != nil {
-		log.Printf("serverHomePage: %s\n", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
+type FormData struct {
+	Action     string
+	SubmitText string
 }
 
-func servePage(template *template.Template) http.HandlerFunc {
+func servePageWithForm(template *template.Template, data any) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		if err := template.Execute(w, data); err != nil {
+			log.Printf("serverPage: %s\n", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+	}
+}
+
+func servePageWithRedirect(template *template.Template) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		if _, err := session.GetUserIDFromSession(w, r); err != nil {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
 
