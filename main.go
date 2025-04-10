@@ -14,9 +14,13 @@ import (
 const (
 	HomePage = iota
 	LoginSignUpPage
+	TasksPage
+	TasksAddPage
+
+	PageCount
 )
 
-var templates = make([]*template.Template, 3)
+var templates = make([]*template.Template, PageCount)
 
 func main() {
 	loadTemplates()
@@ -26,7 +30,7 @@ func main() {
 		return
 	}
 
-	http.HandleFunc("/", servePageWithRedirect(templates[HomePage], nil))
+	http.HandleFunc("/", servePageWithRedirect(templates[HomePage]))
 
 	http.HandleFunc("/login", servePageWithForm(templates[LoginSignUpPage], "/api/login", "Login"))
 	http.HandleFunc("/api/login", apiWrapper(api.HandleLogin))
@@ -35,6 +39,12 @@ func main() {
 	// You probably don't want to allow users to sign up. This is just for testing purposes.
 	http.HandleFunc("/signup", servePageWithForm(templates[LoginSignUpPage], "/api/signup", "Create Account"))
 	http.HandleFunc("/api/signup", apiWrapper(api.HandleSignUp))
+
+	http.HandleFunc("/tasks", servePageWithRedirect(templates[TasksPage]))
+	http.HandleFunc("/api/tasks", apiWrapperWithCheck(api.HandleGetTasks))
+
+	http.HandleFunc("/tasks/add", servePageWithRedirect(templates[TasksAddPage]))
+	http.HandleFunc("/api/tasks/add", apiWrapperWithCheck(api.HandleAddTask))
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
@@ -53,6 +63,8 @@ func loadTemplates() {
 	const navbarTemplate = "./templates/navbar.html"
 	templates[HomePage] = template.Must(template.ParseFiles(baseTemplate, navbarTemplate, "./templates/home.html"))
 	templates[LoginSignUpPage] = template.Must(template.ParseFiles(baseTemplate, navbarTemplate, "./templates/login-signup_form.html"))
+	templates[TasksPage] = template.Must(template.ParseFiles(baseTemplate, navbarTemplate, "./templates/tasks.html"))
+	templates[TasksAddPage] = template.Must(template.ParseFiles(baseTemplate, navbarTemplate, "./templates/task_add.html"))
 }
 
 type pageData struct {
@@ -82,20 +94,18 @@ func servePageWithForm(template *template.Template, action string, submitText st
 	}
 }
 
-func servePageWithRedirect(template *template.Template, fn func(w http.ResponseWriter, r *http.Request, userID uint)) http.HandlerFunc {
+func servePageWithRedirect(template *template.Template) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		userID, err := session.GetUserIDFromSession(w, r)
+		_, err := session.GetUserIDFromSession(w, r)
 		if err != nil {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
-
-		fn(w, r, userID)
 
 		var buf bytes.Buffer
 		if err := template.Execute(&buf, &pageData{IsLoggedIn: true}); err != nil {
@@ -106,9 +116,23 @@ func servePageWithRedirect(template *template.Template, fn func(w http.ResponseW
 	}
 }
 
-func apiWrapper(fn func(w http.ResponseWriter, r *http.Request)) http.HandlerFunc {
+func apiWrapper(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		fn(w, r)
+	}
+}
+
+func apiWrapperWithCheck(fn func(http.ResponseWriter, *http.Request, uint)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		userID, err := session.GetUserIDFromSession(w, r)
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		fn(w, r, userID)
 	}
 }
