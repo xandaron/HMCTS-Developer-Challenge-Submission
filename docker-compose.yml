@@ -22,12 +22,14 @@ services:
       - mysql
     ports:
       - "80:80"
+      - "443:443"
     environment:
       DB_HOST: mysql-db
       DB_PORT: 3306
       DB_USER: user
       DB_PASSWORD: password
       DB_NAME: mydb
+      ENABLE_HTTPS: "true"
 
 volumes:
   mysql-data:

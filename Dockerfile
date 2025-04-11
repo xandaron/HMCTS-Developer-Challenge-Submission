@@ -5,14 +5,26 @@ WORKDIR /
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY . .
+COPY *.go ./
+COPY api ./api/
+COPY database ./database/
+COPY errors ./errors/
+COPY session ./session/
+
 RUN CGO_ENABLED=0 GOOS=linux go build -o server main.go
 
 FROM gcr.io/distroless/static:nonroot
 
-COPY --from=build /server .
+WORKDIR /app
+
+COPY --from=build /server ./
 COPY ./static ./static
 COPY ./templates ./templates
+COPY ./cert.pem ./cert.pem
+COPY ./key.pem ./key.pem
+
+USER nonroot:nonroot
 
 EXPOSE 80
+EXPOSE 443
 CMD ["./server"]
