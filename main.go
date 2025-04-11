@@ -32,15 +32,16 @@ func main() {
 
 	http.HandleFunc("/", servePageWithRedirect(templates[HomePage]))
 
+	http.HandleFunc("/api/logout", apiWrapper(api.LogoutHandler))
+	
 	http.HandleFunc("/login", servePageSignupLogin(templates[LoginSignUpPage], "login", "Login"))
-	http.HandleFunc("/api/login", apiWrapper(api.HandleLogin))
-	http.HandleFunc("/api/logout", apiWrapper(api.HandleLogout))
-
+	http.HandleFunc("/api/login", apiWrapper(api.LoginHandler))
+	
 	// You probably don't want to allow users to sign up. This is just for testing purposes.
 	http.HandleFunc("/signup", servePageSignupLogin(templates[LoginSignUpPage], "signup", "Create Account"))
-	http.HandleFunc("/api/signup", apiWrapper(api.HandleSignUp))
+	http.HandleFunc("/api/signup", apiWrapper(api.SignUpHandler))
 
-	http.HandleFunc("/api/tasks", apiWrapperWithSessionCheck(api.HandleTasks))
+	http.HandleFunc("/api/tasks", apiWrapperWithSessionCheck(api.TasksHandler))
 	http.HandleFunc("/tasks", servePageWithRedirect(templates[TasksPage]))
 	http.HandleFunc("/tasks/add", servePageWithRedirect(templates[TasksAddPage]))
 

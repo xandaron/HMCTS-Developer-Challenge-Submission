@@ -13,7 +13,7 @@ import (
 
 var errUserExists = fmt.Errorf("user-exists")
 
-func HandleSignUp(w http.ResponseWriter, r *http.Request) {
+func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return

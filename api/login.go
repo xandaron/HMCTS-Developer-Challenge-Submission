@@ -16,7 +16,7 @@ var errWrongPassword = fmt.Errorf("incorrect password")
 var errUserNotFound = fmt.Errorf("user not found")
 var errEmptyUsernameOrPassword = fmt.Errorf("empty username or password")
 
-func HandleLogin(w http.ResponseWriter, r *http.Request) {
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
