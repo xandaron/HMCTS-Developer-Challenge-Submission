@@ -54,13 +54,12 @@ func main() {
 			newURL := "https://" + r.Host + r.URL.String()
 			http.Redirect(w, r, newURL, http.StatusMovedPermanently)
 		})
-		
-		log.Println("Starting HTTP redirect server on :80")
+
 		if err := http.ListenAndServe(":80", redirectHandler); err != nil {
 			log.Println("HTTP redirect server error:", err)
 		}
 	}()
-	
+
 	if err := http.ListenAndServeTLS(":443", "./cert.pem", "./key.pem", nil); err != nil {
 		log.Println(err)
 	}
