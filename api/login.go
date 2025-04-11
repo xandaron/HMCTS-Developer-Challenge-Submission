@@ -1,7 +1,7 @@
 package api
 
 import (
-	db "HMCTS-Developer-Challenge/database"
+	"HMCTS-Developer-Challenge/database"
 	"HMCTS-Developer-Challenge/errors"
 	"HMCTS-Developer-Challenge/session"
 	"bytes"
@@ -88,7 +88,7 @@ func loginUser(username, password string) (uint, error) {
 
 	info, err := parseHash(passwordHash)
 	if err != nil {
-		return 0, err
+		return 0, errors.AddContext(err, "login.go: loginUser - parseHash")
 	}
 
 	newHash := argon2.IDKey(
@@ -145,12 +145,12 @@ func parseHash(encodedHash string) (*HashInfo, error) {
 		return nil, errors.Errorf("invalid threads parameter: %v", err)
 	}
 
-	salt, err := base64.RawStdEncoding.DecodeString(parts[4])
+	salt, err := base64.StdEncoding.DecodeString(parts[4])
 	if err != nil {
 		return nil, errors.Errorf("invalid salt encoding: %v", err)
 	}
 
-	hash, err := base64.RawStdEncoding.DecodeString(parts[5])
+	hash, err := base64.StdEncoding.DecodeString(parts[5])
 	if err != nil {
 		return nil, errors.Errorf("invalid hash encoding: %v", err)
 	}
