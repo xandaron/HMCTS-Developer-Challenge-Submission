@@ -1,7 +1,7 @@
 package api
 
 import (
-	db "HMCTS-Developer-Challenge/database"
+	"HMCTS-Developer-Challenge/database"
 	"HMCTS-Developer-Challenge/errors"
 	"HMCTS-Developer-Challenge/session"
 	"bytes"
@@ -9,9 +9,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"net/http"
-
 	"golang.org/x/crypto/argon2"
+	"net/http"
 )
 
 var errUserExists = errors.Error("user already exists")
