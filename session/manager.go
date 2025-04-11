@@ -1,8 +1,9 @@
 package session
 
 import (
-	"crypto/rand"
 	"HMCTS-Developer-Challenge/errors"
+	"crypto/rand"
+	"log"
 	"net/http"
 	"time"
 )
@@ -18,6 +19,25 @@ var sessions = make(map[string]Session)
 
 var errSessionExpired = errors.Error("Session Expired")
 var errSessionNotFound = errors.Error("Session Not Found")
+
+func SessionCleanupRoutine() {
+	ticker := time.NewTicker(30 * time.Minute)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		log.Println("Running session cleanup...")
+		now := time.Now()
+
+		for sessionID, session := range sessions {
+			if now.Sub(session.Timestamp) > sessionTimeout {
+				delete(sessions, sessionID)
+				log.Printf("Session %s expired and removed\n", sessionID)
+			}
+		}
+
+		log.Println("Session cleanup completed")
+	}
+}
 
 func CreateUserSessionCookie(w http.ResponseWriter, userID uint) {
 	sessionID, sessionTimout := createUserSession(userID)
