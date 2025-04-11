@@ -12,8 +12,8 @@ import (
 	"net/http"
 )
 
-var errWrongPassword = fmt.Errorf("incorrect password")
 var errUserNotFound = fmt.Errorf("user not found")
+var errWrongPassword = fmt.Errorf("incorrect password")
 var errEmptyUsernameOrPassword = fmt.Errorf("empty username or password")
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {

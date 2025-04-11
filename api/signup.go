@@ -11,7 +11,7 @@ import (
 	"net/http"
 )
 
-var errUserExists = fmt.Errorf("user-exists")
+var errUserExists = fmt.Errorf("user already exists")
 
 // This should probably require system admin credentials in production
 func SignUpHandler(w http.ResponseWriter, r *http.Request) {
