@@ -47,8 +47,8 @@ func main() {
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-	// Switch to HTTPS in production
-	if err := http.ListenAndServe(":80", nil); err != nil {
+	go session.SessionCleanupRoutine()
+
 		log.Println(err)
 	}
 
