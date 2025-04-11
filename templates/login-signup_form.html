@@ -6,7 +6,7 @@
       password: document.getElementById("password").value,
     };
 
-    const response = await fetch("{{ .Action }}", {
+    const response = await fetch("/api/{{ .Action }}", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
