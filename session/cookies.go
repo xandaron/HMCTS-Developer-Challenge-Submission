@@ -13,5 +13,6 @@ func SetCookie(w http.ResponseWriter, name string, sessionID string, sessionTimo
 		Expires:  sessionTimout,
 		HttpOnly: true,
 		Secure:   false, // Set to true in production
+		SameSite: http.SameSiteStrictMode,
 	})
 }
