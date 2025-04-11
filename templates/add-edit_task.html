@@ -1,0 +1,87 @@
+{{ define "content" }}
+<script>
+  async function getTaskData() {
+    const taskID = window.location.pathname.split("/").pop();
+    const response = await fetch(`/api/tasks/${taskID}`);
+    if (response.status === 200) {
+      const task = await response.json();
+      document.getElementById("name").value = task.name;
+      document.getElementById("description").value = task.description;
+      document.getElementById("status").value = task.status;
+      document.getElementById("deadline").value = task.deadline;
+    } else {
+      alert(`Failed to fetch task. Status: ${response.status}`);
+    }
+  }
+
+  async function editTask() {
+    const task = {
+      name: document.getElementById("name").value,
+      description: document.getElementById("description").value,
+      status: document.getElementById("status").value,
+      deadline: document.getElementById("deadline").value,
+    };
+
+    console.log(task);
+
+    const taskID = window.location.pathname.split("/").pop();
+    const response = await fetch(`/api/tasks/${taskID}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(task),
+    });
+
+    if (response.status === 204) {
+      window.location.href = "/tasks";
+    } else {
+      alert(`Failed to edit task. Status: ${response.status}`);
+    }
+  }
+
+  async function addTask() {
+    const task = {
+      name: document.getElementById("name").value,
+      description: document.getElementById("description").value,
+      status: document.getElementById("status").value,
+      deadline: document.getElementById("deadline").value,
+    };
+
+    const response = await fetch("/api/tasks/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(task),
+    });
+
+    if (response.status === 201) {
+      window.location.href = "/tasks";
+    } else {
+      alert(`Failed to add task. Status: ${response.status}`);
+    }
+  }
+</script>
+<div class="flex items-start justify-center min-h-screen bg-gray-100 pt-12">
+  <div class="w-full max-w-xs">
+    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+      <div class="mb-4">
+        <input type="text" id="name" placeholder="Task Name" required />
+        <textarea id="description" placeholder="Task Description"></textarea>
+        <select id="status" required>
+          <option value="INCOMPLETE">Incomplete</option>
+          <option value="COMPLETE">Complete</option>
+        </select>
+        <input type="datetime-local" id="deadline" required />
+        {{ if .Edit }}
+        <script>getTaskData()</script>
+        <button onclick="editTask()">Update</button>
+        {{ else }}
+        <button onclick="addTask()">Add Task</button>
+        {{ end }}
+      </div>
+    </div>
+  </div>
+</div>
+{{ end }}

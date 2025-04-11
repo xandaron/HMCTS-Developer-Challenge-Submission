@@ -1,10 +1,10 @@
 package api
 
 import (
-	"bytes"
 	"HMCTS-Developer-Challenge/database"
 	"HMCTS-Developer-Challenge/errors"
 	"HMCTS-Developer-Challenge/session"
+	"bytes"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -13,6 +13,7 @@ import (
 
 var errUserExists = fmt.Errorf("user-exists")
 
+// This should probably require system admin credentials in production
 func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

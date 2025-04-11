@@ -1,6 +1,6 @@
 {{ define "content" }}
 <script>
-  async function submit() {
+  async function action() {
     const form = {
       username: document.getElementById("username").value,
       password: document.getElementById("password").value,
@@ -14,7 +14,7 @@
       body: JSON.stringify(form),
     });
 
-    if (response.status === 200) {
+    if (response.ok) {
       window.location.href = "/tasks";
     } else {
       alert(`Failed! Status: ${response.status}`);
@@ -59,7 +59,7 @@
         <button
           class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
           type="button"
-          onclick="submit()"
+          onclick="action()"
         >
           {{ .SubmitText }}
         </button>
