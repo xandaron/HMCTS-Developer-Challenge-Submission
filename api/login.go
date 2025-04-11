@@ -1,20 +1,34 @@
 package api
 
 import (
-	"HMCTS-Developer-Challenge/database"
+	db "HMCTS-Developer-Challenge/database"
 	"HMCTS-Developer-Challenge/errors"
 	"HMCTS-Developer-Challenge/session"
 	"bytes"
-	"crypto/sha256"
+	"crypto/subtle"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
+
+	"golang.org/x/crypto/argon2"
 )
 
-var errUserNotFound = fmt.Errorf("user not found")
-var errWrongPassword = fmt.Errorf("incorrect password")
-var errEmptyUsernameOrPassword = fmt.Errorf("empty username or password")
+type HashInfo struct {
+	Algorithm string
+	Version   int
+	Memory    uint32
+	Time      uint32
+	Threads   uint8
+	Salt      []byte
+	Hash      []byte
+}
+
+var errUserNotFound = errors.Error("user not found")
+var errWrongPassword = errors.Error("incorrect password")
+var errEmptyUsernameOrPassword = errors.Error("empty username or password")
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -59,23 +73,95 @@ func loginUser(username, password string) (uint, error) {
 
 	dbHandle, err := db.GetDBHandle()
 	if err != nil {
-		return 0, errors.New(err, "login.go: loginUser - GetDBHandle")
+		return 0, errors.AddContext(err, "login.go: loginUser - GetDBHandle")
 	}
 
 	var userID uint
-	var passwordSha256 string
-	if err := dbHandle.QueryRow("SELECT id, password_sha256 FROM users WHERE name = ?", username).Scan(&userID, &passwordSha256); err != nil {
+	var passwordHash string
+	if err := dbHandle.QueryRow("SELECT id, password_hash FROM users WHERE name = ?", username).Scan(&userID, &passwordHash); err != nil {
 		if err == sql.ErrNoRows {
 			return 0, errUserNotFound
 		} else {
-			return 0, errors.New(err, "login.go: loginUser - QueryRow")
+			return 0, errors.AddContext(err, "login.go: loginUser - QueryRow")
 		}
 	}
 
-	hashedPassword := sha256.Sum256([]byte(password))
-	if passwordSha256 != string(hashedPassword[:]) {
+	info, err := parseHash(passwordHash)
+	if err != nil {
+		return 0, err
+	}
+
+	newHash := argon2.IDKey(
+		[]byte(password),
+		info.Salt,
+		info.Time,
+		info.Memory,
+		info.Threads,
+		uint32(len(info.Hash)),
+	)
+
+	if subtle.ConstantTimeCompare(info.Hash, newHash) == 0 {
 		return 0, errWrongPassword
 	}
 
 	return userID, nil
+}
+
+func parseHash(encodedHash string) (*HashInfo, error) {
+	parts := strings.Split(encodedHash, "$")
+
+	if len(parts) != 6 {
+		return nil, errors.Errorf("invalid hash format: expected 6 parts, got %d", len(parts))
+	}
+
+	algorithm := parts[1]
+
+	versionStr := strings.TrimPrefix(parts[2], "v=")
+	version, err := strconv.Atoi(versionStr)
+	if err != nil {
+		return nil, errors.Errorf("invalid version format: %v", err)
+	}
+
+	params := strings.Split(parts[3], ",")
+	if len(params) != 3 {
+		return nil, errors.Error("invalid parameters format")
+	}
+
+	memoryStr := strings.TrimPrefix(params[0], "m=")
+	memory, err := strconv.ParseUint(memoryStr, 10, 32)
+	if err != nil {
+		return nil, errors.Errorf("invalid memory parameter: %v", err)
+	}
+
+	timeStr := strings.TrimPrefix(params[1], "t=")
+	time, err := strconv.ParseUint(timeStr, 10, 32)
+	if err != nil {
+		return nil, errors.Errorf("invalid time parameter: %v", err)
+	}
+
+	threadsStr := strings.TrimPrefix(params[2], "p=")
+	threads, err := strconv.ParseUint(threadsStr, 10, 8)
+	if err != nil {
+		return nil, errors.Errorf("invalid threads parameter: %v", err)
+	}
+
+	salt, err := base64.RawStdEncoding.DecodeString(parts[4])
+	if err != nil {
+		return nil, errors.Errorf("invalid salt encoding: %v", err)
+	}
+
+	hash, err := base64.RawStdEncoding.DecodeString(parts[5])
+	if err != nil {
+		return nil, errors.Errorf("invalid hash encoding: %v", err)
+	}
+
+	return &HashInfo{
+		Algorithm: algorithm,
+		Version:   version,
+		Memory:    uint32(memory),
+		Time:      uint32(time),
+		Threads:   uint8(threads),
+		Salt:      salt,
+		Hash:      hash,
+	}, nil
 }

@@ -16,8 +16,8 @@ type Session struct {
 
 var sessions = make(map[string]Session)
 
-var errSessionExpired = errors.NewBaseError("session-expired")
-var errSessionNotFound = errors.NewBaseError("session-not-found")
+var errSessionExpired = errors.Error("Session Expired")
+var errSessionNotFound = errors.Error("Session Not Found")
 
 func CreateUserSessionCookie(w http.ResponseWriter, userID uint) {
 	sessionID, sessionTimout := createUserSession(userID)
@@ -27,12 +27,12 @@ func CreateUserSessionCookie(w http.ResponseWriter, userID uint) {
 func GetUserIDFromSession(w http.ResponseWriter, r *http.Request) (uint, error) {
 	sessionID, err := getSessionID(w, r)
 	if err != nil {
-		return 0, errors.New(err, "session.go: GetUserIDFromSession - getSessionID")
+		return 0, errors.AddContext(err, "session.go: GetUserIDFromSession - getSessionID")
 	}
 
 	userID, err := getUserID(sessionID)
 	if err != nil {
-		return 0, errors.New(err, "session.go: GetUserIDFromSession - getUserID")
+		return 0, errors.AddContext(err, "session.go: GetUserIDFromSession - getUserID")
 	}
 
 	return userID, nil
@@ -62,7 +62,7 @@ func createUserSession(userID uint) (string, time.Time) {
 func getSessionID(w http.ResponseWriter, r *http.Request) (string, error) {
 	cookie, err := r.Cookie("session_id")
 	if err != nil {
-		return "", errors.New(err, "session.go: getSessionID - Cookie")
+		return "", errors.AddContext(err, "session.go: getSessionID - Cookie")
 	}
 
 	sessionID := cookie.Value

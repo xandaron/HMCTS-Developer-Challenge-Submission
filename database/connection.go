@@ -1,10 +1,11 @@
 package db
 
 import (
+	"HMCTS-Developer-Challenge/errors"
 	"database/sql"
-	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"os"
+	"fmt"
 )
 
 var db *sql.DB
@@ -16,19 +17,19 @@ var pwd = os.Getenv("DB_PASSWORD")
 
 func Connect() error {
 	if host == "" {
-		return fmt.Errorf("DB_HOST environment variable is not set")
+		return errors.Error("DB_HOST environment variable is not set")
 	}
 	if port == "" {
-		return fmt.Errorf("DB_PORT environment variable is not set")
+		return errors.Error("DB_PORT environment variable is not set")
 	}
 	if dbname == "" {
-		return fmt.Errorf("DB_NAME environment variable is not set")
+		return errors.Error("DB_NAME environment variable is not set")
 	}
 	if user == "" {
-		return fmt.Errorf("DB_USER environment variable is not set")
+		return errors.Error("DB_USER environment variable is not set")
 	}
 	if pwd == "" {
-		return fmt.Errorf("DB_PASSWORD environment variable is not set")
+		return errors.Error("DB_PASSWORD environment variable is not set")
 	}
 
 	var err error = nil

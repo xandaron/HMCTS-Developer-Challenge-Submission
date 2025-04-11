@@ -27,8 +27,8 @@ type jsonData struct {
 	Deadline    string `json:"deadline"`
 }
 
-var errTaskNotFound = errors.NewBaseError("Task Not Found")
-var errMissingJsonData = errors.NewBaseError("Missing JSON Data")
+var errTaskNotFound = errors.Error("Task Not Found")
+var errMissingJsonData = errors.Error("Missing JSON Data")
 
 func TasksHandler(w http.ResponseWriter, r *http.Request, userID uint) {
 	switch r.Method {
@@ -128,7 +128,7 @@ func getTask(userID uint, taskID string) (task, error) {
 
 	dbHandle, err := db.GetDBHandle()
 	if err != nil {
-		return t, errors.New(err, "task.go: HandleGetTask - GetDBHandle")
+		return t, errors.AddContext(err, "task.go: HandleGetTask - GetDBHandle")
 	}
 
 	if err := dbHandle.QueryRow(
@@ -144,7 +144,7 @@ func getTask(userID uint, taskID string) (task, error) {
 		if err == sql.ErrNoRows {
 			return t, errTaskNotFound
 		}
-		return t, errors.New(err, "task.go: HandleGetTask - QueryRow")
+		return t, errors.AddContext(err, "task.go: HandleGetTask - QueryRow")
 	}
 	return t, nil
 }
@@ -152,12 +152,12 @@ func getTask(userID uint, taskID string) (task, error) {
 func getTasks(userID uint) ([]task, error) {
 	dbHandle, err := db.GetDBHandle()
 	if err != nil {
-		return nil, errors.New(err, "task.go: HandleGetTasks - GetDBHandle")
+		return nil, errors.AddContext(err, "task.go: HandleGetTasks - GetDBHandle")
 	}
 
 	rows, err := dbHandle.Query("SELECT * FROM tasks WHERE user_id = ?", userID)
 	if err != nil {
-		return nil, errors.New(err, "task.go: HandleGetTasks - Query")
+		return nil, errors.AddContext(err, "task.go: HandleGetTasks - Query")
 	}
 
 	var tasks []task
@@ -165,7 +165,7 @@ func getTasks(userID uint) ([]task, error) {
 		var t task
 		err := rows.Scan(&t.ID, &t.UserID, &t.Name, &t.Description, &t.Status, &t.CreatedAt, &t.Deadline)
 		if err != nil {
-			return nil, errors.New(err, "task.go: HandleGetTasks - Scan")
+			return nil, errors.AddContext(err, "task.go: HandleGetTasks - Scan")
 		}
 		tasks = append(tasks, t)
 	}
@@ -175,7 +175,7 @@ func getTasks(userID uint) ([]task, error) {
 func addTask(userID uint, data jsonData) error {
 	dbHandle, err := db.GetDBHandle()
 	if err != nil {
-		return errors.New(err, "task.go: addTask - GetDBHandle")
+		return errors.AddContext(err, "task.go: addTask - GetDBHandle")
 	}
 
 	if data.Name == "" || data.Status == "" || data.Deadline == "" {
@@ -191,7 +191,7 @@ func addTask(userID uint, data jsonData) error {
 		data.Deadline,
 	)
 	if err != nil {
-		return errors.New(err, "task.go: addTask - Exec")
+		return errors.AddContext(err, "task.go: addTask - Exec")
 	}
 
 	return nil
@@ -200,11 +200,11 @@ func addTask(userID uint, data jsonData) error {
 func editTask(userID uint, taskID string, data jsonData) error {
 	dbHandle, err := db.GetDBHandle()
 	if err != nil {
-		return errors.New(err, "task.go: editTask - GetDBHandle")
+		return errors.AddContext(err, "task.go: editTask - GetDBHandle")
 	}
 
 	if exists, err := checkTaskExists(userID, taskID); err != nil {
-		return errors.New(err, "task.go: deleteTask - QueryRow")
+		return errors.AddContext(err, "task.go: deleteTask - QueryRow")
 	} else if !exists {
 		return errTaskNotFound
 	}
@@ -223,7 +223,7 @@ func editTask(userID uint, taskID string, data jsonData) error {
 		userID,
 	)
 	if err != nil {
-		return errors.New(err, "task.go: editTask - Exec")
+		return errors.AddContext(err, "task.go: editTask - Exec")
 	}
 
 	return nil
@@ -232,18 +232,18 @@ func editTask(userID uint, taskID string, data jsonData) error {
 func deleteTask(userID uint, taskID string) error {
 	dbHandle, err := db.GetDBHandle()
 	if err != nil {
-		return errors.New(err, "task.go: deleteTask - GetDBHandle")
+		return errors.AddContext(err, "task.go: deleteTask - GetDBHandle")
 	}
 
 	if exists, err := checkTaskExists(userID, taskID); err != nil {
-		return errors.New(err, "task.go: deleteTask - QueryRow")
+		return errors.AddContext(err, "task.go: deleteTask - QueryRow")
 	} else if !exists {
 		return errTaskNotFound
 	}
 
 	_, err = dbHandle.Exec("DELETE FROM tasks WHERE id = ? AND user_id = ?", taskID, userID)
 	if err != nil {
-		return errors.New(err, "task.go: deleteTask - Exec")
+		return errors.AddContext(err, "task.go: deleteTask - Exec")
 	}
 
 	return nil
@@ -252,12 +252,12 @@ func deleteTask(userID uint, taskID string) error {
 func checkTaskExists(userID uint, taskID string) (bool, error) {
 	dbHandle, err := db.GetDBHandle()
 	if err != nil {
-		return false, errors.New(err, "task.go: checkTaskExists - GetDBHandle")
+		return false, errors.AddContext(err, "task.go: checkTaskExists - GetDBHandle")
 	}
 
 	var exists bool
 	if err := dbHandle.QueryRow("SELECT EXISTS(SELECT 1 FROM tasks WHERE id = ? AND user_id = ?)", taskID, userID).Scan(&exists); err != nil {
-		return false, errors.New(err, "task.go: checkTaskExists - QueryRow")
+		return false, errors.AddContext(err, "task.go: checkTaskExists - QueryRow")
 	}
 	return exists, nil
 }
