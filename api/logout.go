@@ -11,6 +11,6 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session.DeleteUserSessionCookie(w, r)
+	_ = session.DeleteUserSessionCookie(w, r)
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }

@@ -2,7 +2,7 @@ package session
 
 import (
 	"crypto/rand"
-	"errors"
+	"HMCTS-Developer-Challenge/errors"
 	"net/http"
 	"time"
 )
@@ -16,8 +16,8 @@ type Session struct {
 
 var sessions = make(map[string]Session)
 
-var errSessionExpired = errors.New("session-expired")
-var errSessionNotFound = errors.New("session-not-found")
+var errSessionExpired = errors.NewBaseError("session-expired")
+var errSessionNotFound = errors.NewBaseError("session-not-found")
 
 func CreateUserSessionCookie(w http.ResponseWriter, userID uint) {
 	sessionID, sessionTimout := createUserSession(userID)
@@ -27,22 +27,24 @@ func CreateUserSessionCookie(w http.ResponseWriter, userID uint) {
 func GetUserIDFromSession(w http.ResponseWriter, r *http.Request) (uint, error) {
 	sessionID, err := getSessionID(w, r)
 	if err != nil {
-		return 0, err
+		return 0, errors.New(err, "session.go: GetUserIDFromSession - getSessionID")
 	}
 
 	userID, err := getUserID(sessionID)
 	if err != nil {
-		return 0, err
+		return 0, errors.New(err, "session.go: GetUserIDFromSession - getUserID")
 	}
 
 	return userID, nil
 }
 
-func DeleteUserSessionCookie(w http.ResponseWriter, r *http.Request) {
-	if sessionID, err := getSessionID(w, r); err == nil {
+func DeleteUserSessionCookie(w http.ResponseWriter, r *http.Request) error {
+	sessionID, err := getSessionID(w, r)
+	if err == nil {
 		delete(sessions, sessionID)
 		SetCookie(w, "session_id", "", time.Time{})
 	}
+	return err
 }
 
 func createUserSession(userID uint) (string, time.Time) {
@@ -60,7 +62,7 @@ func createUserSession(userID uint) (string, time.Time) {
 func getSessionID(w http.ResponseWriter, r *http.Request) (string, error) {
 	cookie, err := r.Cookie("session_id")
 	if err != nil {
-		return "", err
+		return "", errors.New(err, "session.go: getSessionID - Cookie")
 	}
 
 	sessionID := cookie.Value

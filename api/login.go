@@ -4,10 +4,11 @@ import (
 	"HMCTS-Developer-Challenge/database"
 	"HMCTS-Developer-Challenge/errors"
 	"HMCTS-Developer-Challenge/session"
+	"bytes"
 	"crypto/sha256"
 	"database/sql"
-	"fmt"
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -32,12 +33,14 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := loginUser(jsonData.Username, jsonData.Password)
 	if err == errWrongPassword || err == errUserNotFound || err == errEmptyUsernameOrPassword {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		if err := json.NewEncoder(w).Encode(map[string]string{"message": err.Error()}); err != nil {
+		var buf bytes.Buffer
+		if err := json.NewEncoder(&buf).Encode(map[string]string{"message": err.Error()}); err != nil {
 			errors.HandleServerError(w, err, "login.go: HandleLogin - Encode")
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		buf.WriteTo(w)
 		return
 	} else if err != nil {
 		errors.HandleServerError(w, err, "login.go: HandleLogin - loginUser")
@@ -56,7 +59,7 @@ func loginUser(username, password string) (uint, error) {
 
 	dbHandle, err := db.GetDBHandle()
 	if err != nil {
-		return 0, err
+		return 0, errors.New(err, "login.go: loginUser - GetDBHandle")
 	}
 
 	var userID uint
@@ -65,7 +68,7 @@ func loginUser(username, password string) (uint, error) {
 		if err == sql.ErrNoRows {
 			return 0, errUserNotFound
 		} else {
-			return 0, err
+			return 0, errors.New(err, "login.go: loginUser - QueryRow")
 		}
 	}
 

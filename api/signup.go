@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"HMCTS-Developer-Challenge/database"
 	"HMCTS-Developer-Challenge/errors"
 	"HMCTS-Developer-Challenge/session"
@@ -28,12 +29,14 @@ func HandleSignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := createUser(jsonData.Username, jsonData.Password); err == errUserExists || err == errEmptyUsernameOrPassword {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		if err := json.NewEncoder(w).Encode(map[string]string{"message": err.Error()}); err != nil {
+		var buf bytes.Buffer
+		if err := json.NewEncoder(&buf).Encode(map[string]string{"message": err.Error()}); err != nil {
 			errors.HandleServerError(w, err, "login.go: HandleLogin - Encode")
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		buf.WriteTo(w)
 		return
 	} else if err != nil {
 		errors.HandleServerError(w, err, "signup.go: HandleSignUp - createUser")
@@ -57,14 +60,14 @@ func createUser(username, password string) error {
 
 	exists, err := checkUserExists(username)
 	if err != nil {
-		return err
+		return errors.New(err, "signup.go: createUser - checkUserExists")
 	} else if exists {
 		return errUserExists
 	}
 
 	dbHandle, err := db.GetDBHandle()
 	if err != nil {
-		return err
+		return errors.New(err, "signup.go: createUser - GetDBHandle")
 	}
 
 	passwordSha256 := sha256.Sum256([]byte(password))
@@ -75,12 +78,12 @@ func createUser(username, password string) error {
 func checkUserExists(username string) (bool, error) {
 	dbHandle, err := db.GetDBHandle()
 	if err != nil {
-		return false, err
+		return false, errors.New(err, "signup.go: checkUserExists - GetDBHandle")
 	}
 
 	var count int
 	if err := dbHandle.QueryRow("SELECT COUNT(1) FROM users WHERE name = ?", username).Scan(&count); err != nil {
-		return false, err
+		return false, errors.New(err, "signup.go: checkUserExists - QueryRow")
 	}
 	return count > 0, nil
 }
