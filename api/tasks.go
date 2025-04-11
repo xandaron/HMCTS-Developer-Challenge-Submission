@@ -27,8 +27,8 @@ type jsonData struct {
 	Deadline    string `json:"deadline"`
 }
 
-var errTaskNotFound = errors.NewBaseError("Task not found")
-var errMissingJsonData = errors.NewBaseError("Missing JSON data")
+var errTaskNotFound = errors.NewBaseError("Task Not Found")
+var errMissingJsonData = errors.NewBaseError("Missing JSON Data")
 
 func TasksHandler(w http.ResponseWriter, r *http.Request, userID uint) {
 	switch r.Method {
@@ -42,7 +42,7 @@ func TasksHandler(w http.ResponseWriter, r *http.Request, userID uint) {
 		} else {
 			tasks, err = getTask(userID, pathParts[3])
 			if err == errTaskNotFound {
-				http.Error(w, "Task not found", http.StatusNotFound)
+				http.Error(w, errTaskNotFound.Error(), http.StatusNotFound)
 				break
 			}
 		}
@@ -80,7 +80,7 @@ func TasksHandler(w http.ResponseWriter, r *http.Request, userID uint) {
 	case http.MethodPut:
 		pathParts := strings.Split(r.URL.Path, "/")
 		if len(pathParts) < 4 || pathParts[3] == "" {
-			http.Error(w, "Task ID is required", http.StatusBadRequest)
+			http.Error(w, "Task ID Required", http.StatusBadRequest)
 			break
 		}
 
@@ -90,11 +90,8 @@ func TasksHandler(w http.ResponseWriter, r *http.Request, userID uint) {
 			break
 		}
 
-		if err := editTask(userID, pathParts[3], data); err == errMissingJsonData {
-			http.Error(w, "Missing JSON data", http.StatusBadRequest)
-			break
-		} else if err == errTaskNotFound {
-			http.Error(w, "Task not found", http.StatusNotFound)
+		if err := editTask(userID, pathParts[3], data); err == errMissingJsonData || err == errTaskNotFound {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			break
 		} else if err != nil {
 			errors.HandleServerError(w, err, "task.go: HandleTasks - editTask")
@@ -105,12 +102,12 @@ func TasksHandler(w http.ResponseWriter, r *http.Request, userID uint) {
 	case http.MethodDelete:
 		pathParts := strings.Split(r.URL.Path, "/")
 		if len(pathParts) < 4 || pathParts[3] == "" {
-			http.Error(w, "Task ID is required", http.StatusBadRequest)
+			http.Error(w, "Task ID Required", http.StatusBadRequest)
 			break
 		}
 
 		if err := deleteTask(userID, pathParts[3]); err == errTaskNotFound {
-			http.Error(w, "Task not found", http.StatusNotFound)
+			http.Error(w, err.Error(), http.StatusNotFound)
 			break
 		} else if err != nil {
 			errors.HandleServerError(w, err, "task.go: HandleTasks - deleteTask")
