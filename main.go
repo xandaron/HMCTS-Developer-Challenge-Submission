@@ -32,19 +32,17 @@ func main() {
 
 	http.HandleFunc("/", servePageWithRedirect(templates[HomePage]))
 
-	http.HandleFunc("/login", servePageWithForm(templates[LoginSignUpPage], "/api/login", "Login"))
+	http.HandleFunc("/login", servePageSignupLogin(templates[LoginSignUpPage], "login", "Login"))
 	http.HandleFunc("/api/login", apiWrapper(api.HandleLogin))
 	http.HandleFunc("/api/logout", apiWrapper(api.HandleLogout))
 
 	// You probably don't want to allow users to sign up. This is just for testing purposes.
-	http.HandleFunc("/signup", servePageWithForm(templates[LoginSignUpPage], "/api/signup", "Create Account"))
+	http.HandleFunc("/signup", servePageSignupLogin(templates[LoginSignUpPage], "signup", "Create Account"))
 	http.HandleFunc("/api/signup", apiWrapper(api.HandleSignUp))
 
+	http.HandleFunc("/api/tasks", apiWrapperWithSessionCheck(api.HandleTasks))
 	http.HandleFunc("/tasks", servePageWithRedirect(templates[TasksPage]))
-	http.HandleFunc("/api/tasks", apiWrapperWithCheck(api.HandleGetTasks))
-
 	http.HandleFunc("/tasks/add", servePageWithRedirect(templates[TasksAddPage]))
-	http.HandleFunc("/api/tasks/add", apiWrapperWithCheck(api.HandleAddTask))
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
@@ -73,7 +71,7 @@ type pageData struct {
 	SubmitText string
 }
 
-func servePageWithForm(template *template.Template, action string, submitText string) http.HandlerFunc {
+func servePageSignupLogin(template *template.Template, action string, submitText string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -123,7 +121,7 @@ func apiWrapper(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	}
 }
 
-func apiWrapperWithCheck(fn func(http.ResponseWriter, *http.Request, uint)) http.HandlerFunc {
+func apiWrapperWithSessionCheck(fn func(http.ResponseWriter, *http.Request, uint)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 
