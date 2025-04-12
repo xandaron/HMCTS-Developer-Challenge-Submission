@@ -22,13 +22,29 @@ docker-compose up --build
 
 The backend will be available at: https://localhost:443
 
+### Demo Login
+
+After starting the application, you can log in with:
+- Username: demo
+- Password: demo123
+
 ### Local Development (without Docker)
 
 To run the project locally without Docker:
 
 1. Install Go (version 1.24+)
 2. Install MySQL
-3. Set up the environment variables:
+3. Create the database:
+   ```bash
+   mysql -u root -p
+   CREATE DATABASE mydb;
+   exit;
+   ```
+4. Initialize the database schema:
+   ```bash
+   mysql -u root -p mydb < database/seed/init.sql
+   ```
+5. Set up the environment variables:
    ```
    DB_HOST=localhost
    DB_PORT=3306
@@ -36,7 +52,7 @@ To run the project locally without Docker:
    DB_PASSWORD=password
    DB_NAME=mydb
    ```
-4. Run the application:
+6. Run the application:
    ```bash
    go run main.go
    ```
