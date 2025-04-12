@@ -20,6 +20,20 @@
       alert(`Failed! Status: ${response.status}`);
     }
   }
+
+  document.addEventListener("DOMContentLoaded", function() {
+    document.getElementById("username").addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        document.getElementById("password").focus();
+      }
+    });
+
+    document.getElementById("password").addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        action();
+      }
+    });
+  });
 </script>
 
 <div class="flex items-start justify-center min-h-screen bg-gray-100 pt-12">
