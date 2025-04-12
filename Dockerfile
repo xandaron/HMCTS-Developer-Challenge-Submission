@@ -20,8 +20,7 @@ WORKDIR /app
 COPY --from=build /server ./
 COPY ./static ./static
 COPY ./templates ./templates
-COPY ./cert.pem ./cert.pem
-COPY ./key.pem ./key.pem
+COPY ./certs ./certs
 
 USER nonroot:nonroot
 

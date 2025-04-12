@@ -60,7 +60,7 @@ func main() {
 		}
 	}()
 
-	if err := http.ListenAndServeTLS(":443", "./cert.pem", "./key.pem", nil); err != nil {
+	if err := http.ListenAndServeTLS(":443", "./certs/cert.pem", "./certs/key.pem", nil); err != nil {
 		log.Println(err)
 	}
 
