@@ -159,6 +159,7 @@ func getTasks(userID uint) ([]task, error) {
 	if err != nil {
 		return nil, errors.AddContext(err, "task.go: HandleGetTasks - Query")
 	}
+	defer rows.Close()
 
 	var tasks []task
 	for rows.Next() {
