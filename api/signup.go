@@ -60,8 +60,14 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := database.GetUserID(jsonData.Username)
+	dbHandle, err := database.GetDBHandle()
 	if err != nil {
+		errors.HandleServerError(w, err, "signup.go: HandleSignUp - GetDBHandle")
+		return
+	}
+
+	var userID uint
+	if err := dbHandle.QueryRow("SELECT id FROM users WHERE name = ?", jsonData.Username).Scan(&userID); err != nil {
 		errors.HandleServerError(w, err, "signup.go: HandleSignUp - GetUserID")
 		return
 	}
