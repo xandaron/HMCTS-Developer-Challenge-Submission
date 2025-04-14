@@ -25,10 +25,15 @@ var templates = make([]*template.Template, PageCount)
 func main() {
 	loadTemplates()
 
-	if err := db.Connect(); err != nil {
+	if err := database.Connect(); err != nil {
 		log.Println(err)
 		return
 	}
+	defer func() {
+		if err := database.Disconnect(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	http.HandleFunc("/", servePageWithRedirect(templates[HomePage]))
 
@@ -64,10 +69,6 @@ func main() {
 	}()
 
 	if err := http.ListenAndServeTLS(":443", "./certs/cert.pem", "./certs/key.pem", nil); err != nil {
-		log.Println(err)
-	}
-
-	if err := db.Disconnect(); err != nil {
 		log.Println(err)
 	}
 }
