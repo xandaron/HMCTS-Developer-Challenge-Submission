@@ -8,9 +8,15 @@
       document.getElementById("name").value = task.name;
       document.getElementById("description").value = task.description;
       document.getElementById("status").value = task.status;
-      document.getElementById("deadline").value = task.deadline;
+      
+      // Format the deadline for datetime-local input
+      if (task.deadline) {
+        const date = new Date(task.deadline);
+        // Format to YYYY-MM-DDThh:mm
+        document.getElementById("deadline").value = date.toISOString().slice(0, 16);
+      }
     } else {
-      alert(`Failed to fetch task. Status: ${response.status}`);
+      showError(`Failed to fetch task. Status: ${response.status}`);
     }
   }
 
@@ -36,7 +42,7 @@
     if (response.status === 204) {
       window.location.href = "/tasks";
     } else {
-      alert(`Failed to edit task. Status: ${response.status}`);
+      showError(`Failed to edit task. Status: ${response.status}`);
     }
   }
 
@@ -59,28 +65,142 @@
     if (response.status === 201) {
       window.location.href = "/tasks";
     } else {
-      alert(`Failed to add task. Status: ${response.status}`);
+      showError(`Failed to add task. Status: ${response.status}`);
     }
   }
+
+  // Add error handling function
+  function showError(message) {
+    const errorEl = document.getElementById("error-message");
+    errorEl.textContent = message;
+    errorEl.classList.remove("hidden");
+    setTimeout(() => {
+      errorEl.classList.add("hidden");
+    }, 5000);
+  }
+
+  // Form validation
+  function validateForm() {
+    const nameField = document.getElementById("name");
+    const deadlineField = document.getElementById("deadline");
+    
+    let isValid = true;
+    
+    if (!nameField.value.trim()) {
+      nameField.classList.add('border-red-500');
+      isValid = false;
+    } else {
+      nameField.classList.remove('border-red-500');
+    }
+    
+    if (!deadlineField.value) {
+      deadlineField.classList.add('border-red-500');
+      isValid = false;
+    } else {
+      deadlineField.classList.remove('border-red-500');
+    }
+    
+    return isValid;
+  }
 </script>
-<div class="flex items-start justify-center min-h-screen bg-gray-100 pt-12">
-  <div class="w-full max-w-xs">
-    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-      <div class="mb-4">
-        <input type="text" id="name" placeholder="Task Name" required />
-        <textarea id="description" placeholder="Task Description"></textarea>
-        <select id="status" required>
-          <option value="INCOMPLETE">Incomplete</option>
-          <option value="COMPLETE">Complete</option>
-        </select>
-        <input type="datetime-local" id="deadline" required />
-        {{ if .Edit }}
-        <script>getTaskData()</script>
-        <button onclick="editTask()">Update</button>
-        {{ else }}
-        <button onclick="addTask()">Add Task</button>
-        {{ end }}
+
+<div class="flex flex-col items-center min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="w-full max-w-xl">
+    <div class="bg-white rounded-lg shadow-md p-8">
+      <!-- Form header -->
+      <div class="mb-6 text-center">
+        <h2 class="text-2xl font-bold text-gray-800">
+          {{ if .Edit }}Edit Task{{ else }}Add New Task{{ end }}
+        </h2>
+        <p class="text-gray-600 mt-1">
+          {{ if .Edit }}Update task details{{ else }}Create a new task{{ end }}
+        </p>
       </div>
+      
+      <!-- Error message -->
+      <div id="error-message" class="mb-6 p-4 bg-red-100 text-red-700 rounded-md hidden"></div>
+      
+      <!-- Task form -->
+      <form onsubmit="return false;" class="space-y-6">
+        <!-- Task name -->
+        <div>
+          <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Task Name</label>
+          <input 
+            type="text" 
+            id="name" 
+            placeholder="Enter task name" 
+            required
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+          />
+        </div>
+        
+        <!-- Description -->
+        <div>
+          <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea 
+            id="description" 
+            placeholder="Enter task description" 
+            rows="4"
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+          ></textarea>
+        </div>
+        
+        <!-- Two-column layout for status and deadline -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Status -->
+          <div>
+            <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select 
+              id="status" 
+              required
+              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors"
+            >
+              <option value="INCOMPLETE">Incomplete</option>
+              <option value="COMPLETE">Complete</option>
+            </select>
+          </div>
+          
+          <!-- Deadline -->
+          <div>
+            <label for="deadline" class="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
+            <input 
+              type="datetime-local" 
+              id="deadline" 
+              required
+              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
+          </div>
+        </div>
+        
+        <!-- Action buttons -->
+        <div class="flex justify-end space-x-4 pt-4">
+          <a 
+            href="/tasks" 
+            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+          >
+            Cancel
+          </a>
+          
+          {{ if .Edit }}
+          <button 
+            type="button"
+            onclick="if(validateForm()) editTask()"
+            class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+          >
+            Update Task
+          </button>
+          <script>getTaskData()</script>
+          {{ else }}
+          <button 
+            type="button"
+            onclick="if(validateForm()) addTask()"
+            class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+          >
+            Create Task
+          </button>
+          {{ end }}
+        </div>
+      </form>
     </div>
   </div>
 </div>
