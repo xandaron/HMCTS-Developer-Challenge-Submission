@@ -60,7 +60,7 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := db.GetUserID(jsonData.Username)
+	userID, err := database.GetUserID(jsonData.Username)
 	if err != nil {
 		errors.HandleServerError(w, err, "signup.go: HandleSignUp - GetUserID")
 		return
@@ -82,7 +82,7 @@ func createUser(username, password string) error {
 		return errUserExists
 	}
 
-	dbHandle, err := db.GetDBHandle()
+	dbHandle, err := database.GetDBHandle()
 	if err != nil {
 		return errors.AddContext(err, "signup.go: createUser - GetDBHandle")
 	}
@@ -115,7 +115,7 @@ func createUser(username, password string) error {
 }
 
 func checkUserExists(username string) (bool, error) {
-	dbHandle, err := db.GetDBHandle()
+	dbHandle, err := database.GetDBHandle()
 	if err != nil {
 		return false, errors.AddContext(err, "signup.go: checkUserExists - GetDBHandle")
 	}

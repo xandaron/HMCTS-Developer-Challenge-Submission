@@ -1,4 +1,4 @@
-package db
+package database
 
 func GetUserID(username string) (uint, error) {
 	dbHandle, err := GetDBHandle()

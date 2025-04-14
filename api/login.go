@@ -71,7 +71,7 @@ func loginUser(username, password string) (uint, error) {
 		return 0, errEmptyUsernameOrPassword
 	}
 
-	dbHandle, err := db.GetDBHandle()
+	dbHandle, err := database.GetDBHandle()
 	if err != nil {
 		return 0, errors.AddContext(err, "login.go: loginUser - GetDBHandle")
 	}

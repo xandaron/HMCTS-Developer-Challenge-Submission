@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const sessionTimeout = 0*time.Second + 5*time.Minute + 0*time.Hour
+var sessionTimeout = 0*time.Second + 5*time.Minute + 0*time.Hour
 
 type Session struct {
 	UserID    uint

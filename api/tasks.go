@@ -126,7 +126,7 @@ func TasksHandler(w http.ResponseWriter, r *http.Request, userID uint) {
 func getTask(userID uint, taskID string) (task, error) {
 	var t task
 
-	dbHandle, err := db.GetDBHandle()
+	dbHandle, err := database.GetDBHandle()
 	if err != nil {
 		return t, errors.AddContext(err, "task.go: HandleGetTask - GetDBHandle")
 	}
@@ -150,7 +150,7 @@ func getTask(userID uint, taskID string) (task, error) {
 }
 
 func getTasks(userID uint) ([]task, error) {
-	dbHandle, err := db.GetDBHandle()
+	dbHandle, err := database.GetDBHandle()
 	if err != nil {
 		return nil, errors.AddContext(err, "task.go: HandleGetTasks - GetDBHandle")
 	}
@@ -174,7 +174,7 @@ func getTasks(userID uint) ([]task, error) {
 }
 
 func addTask(userID uint, data jsonData) error {
-	dbHandle, err := db.GetDBHandle()
+	dbHandle, err := database.GetDBHandle()
 	if err != nil {
 		return errors.AddContext(err, "task.go: addTask - GetDBHandle")
 	}
@@ -199,7 +199,7 @@ func addTask(userID uint, data jsonData) error {
 }
 
 func editTask(userID uint, taskID string, data jsonData) error {
-	dbHandle, err := db.GetDBHandle()
+	dbHandle, err := database.GetDBHandle()
 	if err != nil {
 		return errors.AddContext(err, "task.go: editTask - GetDBHandle")
 	}
@@ -231,7 +231,7 @@ func editTask(userID uint, taskID string, data jsonData) error {
 }
 
 func deleteTask(userID uint, taskID string) error {
-	dbHandle, err := db.GetDBHandle()
+	dbHandle, err := database.GetDBHandle()
 	if err != nil {
 		return errors.AddContext(err, "task.go: deleteTask - GetDBHandle")
 	}
@@ -251,7 +251,7 @@ func deleteTask(userID uint, taskID string) error {
 }
 
 func checkTaskExists(userID uint, taskID string) (bool, error) {
-	dbHandle, err := db.GetDBHandle()
+	dbHandle, err := database.GetDBHandle()
 	if err != nil {
 		return false, errors.AddContext(err, "task.go: checkTaskExists - GetDBHandle")
 	}
