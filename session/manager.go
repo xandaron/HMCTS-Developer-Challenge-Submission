@@ -20,6 +20,18 @@ var sessions = make(map[string]Session)
 var errSessionExpired = errors.Error("Session Expired")
 var errSessionNotFound = errors.Error("Session Not Found")
 
+func SetCookie(w http.ResponseWriter, name string, sessionID string, sessionTimout time.Time) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    sessionID,
+		Path:     "/",
+		Expires:  sessionTimout,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	})
+}
+
 func SessionCleanupRoutine() {
 	ticker := time.NewTicker(30 * time.Minute)
 	defer ticker.Stop()
