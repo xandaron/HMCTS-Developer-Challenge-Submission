@@ -1,84 +1,504 @@
 {{ define "content" }}
 <script>
+  // Track active deletion to handle document clicks
+  let activeDeleteContainer = null;
+  let allTasks = []; // Store all tasks for filtering/sorting
+  let currentFilters = {
+    status: 'all',
+    sortBy: 'deadline',
+    sortDirection: 'asc'
+  };
+
+  // Add document click handler to cancel delete when clicking outside
+  document.addEventListener(
+    "click",
+    function (event) {
+      if (
+        activeDeleteContainer &&
+        !activeDeleteContainer.contains(event.target)
+      ) {
+        resetDeleteButton(activeDeleteContainer);
+      }
+    },
+    true
+  );
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize UI components
+    document.querySelectorAll(".confirm-delete-button").forEach((button) => {
+      button.style.display = "none";
+    });
+    
+    // Setup button positioning
+    setupAddTaskButtonPositioning();
+    
+    // Load tasks data
+    getTasks();
+  });
+
+  // Add scroll event listener to handle button positioning
+  function setupAddTaskButtonPositioning() {
+    const addTaskButton = document.getElementById('add-task-button');
+    const navbar = document.querySelector('nav');
+    
+    function updateButtonPosition() {
+      const navbarBottom = navbar?.getBoundingClientRect().bottom;
+      
+      // If navbar is not visible (scrolled past it) or doesn't exist
+      if (!navbarBottom || navbarBottom <= 0) {
+        addTaskButton.style.top = '1rem'; // Move button to top
+      } else {
+        addTaskButton.style.top = `${navbarBottom + 16}px`; // Position below navbar with 16px padding
+      }
+    }
+    
+    // Update button position on page load
+    updateButtonPosition();
+    
+    // Update button position on scroll (throttled for performance)
+    let ticking = false;
+    window.addEventListener('scroll', function() {
+      if (!ticking) {
+        window.requestAnimationFrame(function() {
+          updateButtonPosition();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    });
+    
+    // Update button position on window resize
+    window.addEventListener('resize', updateButtonPosition);
+  }
+
   async function deleteTask(taskID) {
     const response = await fetch(`/api/tasks/${taskID}`, {
       method: "DELETE",
     });
 
+    resetDeleteButton(activeDeleteContainer);
+    activeDeleteContainer = null;
+
     if (response.status === 204) {
       getTasks();
     } else {
-      alert(`Failed to delete task: ${response.statusText}`);
+      showError(`Failed to delete task: ${response.statusText}`);
+    }
+  }
+
+  function showDeleteConfirmation(taskId, buttonEl, event) {
+    // Prevent event from bubbling to document
+    event.stopPropagation();
+
+    // If there's already an active delete confirmation, reset it
+    if (
+      activeDeleteContainer &&
+      activeDeleteContainer !== buttonEl.closest(".delete-button-container")
+    ) {
+      resetDeleteButton(activeDeleteContainer);
+    }
+
+    // Find the parent delete button container
+    const container = buttonEl.closest(".delete-button-container");
+    activeDeleteContainer = container;
+
+    // Transform delete button to cancel button
+    const deleteButton = container.querySelector(".delete-button");
+    deleteButton.innerHTML = "Cancel"; // Just text, no icon
+    deleteButton.classList.remove(
+      "bg-red-100",
+      "text-red-600",
+      "hover:bg-red-600",
+      "hover:text-white"
+    );
+    deleteButton.classList.add(
+      "bg-gray-200",
+      "text-gray-700",
+      "hover:bg-gray-300",
+      "hover:text-gray-800"
+    );
+    deleteButton.onclick = function (e) {
+      e.stopPropagation();
+      resetDeleteButton(container);
+    };
+
+    // Show the confirm button - use style.display instead of classList
+    const confirmButton = container.querySelector(".confirm-delete-button");
+    confirmButton.style.display = "inline-flex";
+  }
+
+  function resetDeleteButton(container) {
+    if (!container) return;
+
+    // Reset the button back to Delete button
+    const deleteButton = container.querySelector(".delete-button");
+    deleteButton.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+      </svg>
+      Delete
+    `;
+    deleteButton.classList.remove(
+      "bg-gray-200",
+      "text-gray-700",
+      "hover:bg-gray-300",
+      "hover:text-gray-800"
+    );
+    deleteButton.classList.add(
+      "bg-red-100",
+      "text-red-600",
+      "hover:bg-red-600",
+      "hover:text-white"
+    );
+
+    // Reset onclick to show confirmation
+    const taskId = container.getAttribute("data-task-id");
+    deleteButton.onclick = function (e) {
+      showDeleteConfirmation(taskId, this, e);
+    };
+
+    // Hide the confirm button - use style.display instead of classList
+    const confirmButton = container.querySelector(".confirm-delete-button");
+    confirmButton.style.display = "none";
+
+    // Clear active container
+    if (activeDeleteContainer === container) {
+      activeDeleteContainer = null;
     }
   }
 
   async function getTasks() {
-    const response = await fetch("/api/tasks", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (response.ok) {
-      const tasks = await response.json();
-      const tbody = document.querySelector("tbody");
-      tbody.innerHTML = "";
-
-      tasks.forEach((task) => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td class="text-center">${task.id}</td>
-          <td>${task.name}</td>
-          <td>${task.description}</td>
-          <td class="text-center">${task.status}</td>
-          <td class="text-center">${new Date(
-            task.deadline
-          ).toLocaleString()}</td>
-          <td class="text-center">${new Date(
-            task.created_at
-          ).toLocaleString()}</td>
-          <td class="text-center">
-            <a href="/tasks/edit/${
-              task.id
-            }" class="text-blue-500 hover:text-blue-700">Edit</a>
-            <button class="text-red-500 hover:text-white hover:bg-red-500 ml-2" type="button" onclick="deleteTask(${
-              task.id
-            })">Delete</button>
-          </td>
-        `;
-        tbody.appendChild(row);
+    try {
+      const response = await fetch("/api/tasks", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
-    } else {
-      alert(`Failed to fetch tasks: ${response.statusText}`);
+
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${response.statusText}`);
+      }
+
+      allTasks = await response.json();
+      
+      if (allTasks.length === 0) {
+        const tasksContainer = document.getElementById("tasks-container");
+        tasksContainer.innerHTML = `
+          <div class="text-center py-8 text-gray-500">
+            <p class="text-xl">No tasks found</p>
+            <p class="mt-2">Click the "Add Task" button to create your first task</p>
+          </div>
+        `;
+        document.getElementById("filters-container").classList.add("hidden");
+        return;
+      }
+
+      // Show filters when tasks exist
+      document.getElementById("filters-container").classList.remove("hidden");
+      applyFilters();
+    } catch (error) {
+      showError(`Failed to fetch tasks: ${error.message}`);
     }
   }
 
-  getTasks();
+  function applyFilters() {
+    if (!allTasks || allTasks.length === 0) return;
+    
+    const filteredTasks = allTasks.filter(task => {
+      // Check for overdue tasks (deadline in past AND not complete)
+      const isOverdue = new Date(task.deadline) < new Date() && task.status !== "COMPLETE";
+      
+      // Filter by status using simplified condition
+      switch(currentFilters.status) {
+        case 'complete': 
+          return task.status === "COMPLETE";
+        case 'incomplete': 
+          return task.status === "INCOMPLETE";
+        case 'overdue': 
+          return isOverdue;
+        case 'all':
+        default:
+          return true;
+      }
+    });
+
+    // Sort the filtered tasks
+    filteredTasks.sort((a, b) => {
+      const aValue = new Date(currentFilters.sortBy === 'deadline' ? a.deadline : a.created_at);
+      const bValue = new Date(currentFilters.sortBy === 'deadline' ? b.deadline : b.created_at);
+      
+      // Apply sort direction
+      return currentFilters.sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    });
+
+    renderTasks(filteredTasks);
+    updateFilterButtons();
+  }
+
+  function updateFilterButtons() {
+    // Update status filter buttons
+    document.querySelectorAll('.status-filter').forEach(btn => {
+      const status = btn.getAttribute('data-status');
+      if (status === currentFilters.status) {
+        btn.classList.add('bg-blue-100', 'text-blue-800', 'border-blue-300');
+        btn.classList.remove('bg-gray-100', 'text-gray-700', 'border-gray-300', 'hover:bg-gray-200');
+      } else {
+        btn.classList.remove('bg-blue-100', 'text-blue-800', 'border-blue-300');
+        btn.classList.add('bg-gray-100', 'text-gray-700', 'border-gray-300', 'hover:bg-gray-200');
+      }
+    });
+
+    // Update sort buttons
+    document.querySelectorAll('.sort-option').forEach(option => {
+      const sortBy = option.getAttribute('data-sort');
+      
+      // First reset all buttons to default style
+      option.classList.remove('bg-blue-50', 'text-blue-600');
+      option.classList.add('bg-gray-100', 'text-gray-700');
+      
+      // Then apply active style to the selected sort option
+      if (sortBy === currentFilters.sortBy) {
+        option.classList.remove('bg-gray-100', 'text-gray-700');
+        option.classList.add('bg-blue-50', 'text-blue-600');
+
+        // Update direction indicator
+        const dirIcon = option.querySelector('.sort-direction');
+        if (currentFilters.sortDirection === 'asc') {
+          dirIcon.innerHTML = '↑';
+          dirIcon.setAttribute('title', 'Ascending');
+        } else {
+          dirIcon.innerHTML = '↓';
+          dirIcon.setAttribute('title', 'Descending');
+        }
+        
+        dirIcon.classList.remove('hidden');
+      } else {
+        option.querySelector('.sort-direction').classList.add('hidden');
+      }
+    });
+  }
+
+  function setStatusFilter(status) {
+    currentFilters.status = status;
+    applyFilters();
+  }
+
+  function setSortOption(sortBy) {
+    // If clicking the same sort option, toggle direction
+    if (currentFilters.sortBy === sortBy) {
+      currentFilters.sortDirection = currentFilters.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      currentFilters.sortBy = sortBy;
+      currentFilters.sortDirection = 'asc'; // Default to ascending when changing sort option
+    }
+
+    applyFilters();
+  }
+
+  function renderTasks(tasks) {
+    const tasksContainer = document.getElementById("tasks-container");
+    tasksContainer.innerHTML = "";
+
+    tasks.forEach((task) => {
+      // Define status badge color
+      let statusColor = "gray";
+      if (task.status === "COMPLETE") statusColor = "green";
+      else if (task.status === "INCOMPLETE") statusColor = "yellow";
+      else if (task.status === "Overdue") statusColor = "red";
+
+      const deadlineDate = new Date(task.deadline);
+      const creationDate = new Date(task.created_at);
+
+      const card = document.createElement("div");
+      card.className =
+        "bg-white rounded-lg shadow-md p-6 mb-4 hover:shadow-lg transition-shadow duration-200 relative";
+      card.innerHTML = `
+        <div class="flex justify-between items-start">
+          <div class="w-3/4">
+            <div class="flex items-center mb-2">
+              <h3 class="text-xl font-semibold mr-4">${task.name}</h3>
+              <span class="bg-${statusColor}-100 text-${statusColor}-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                ${task.status}
+              </span>
+            </div>
+            
+            <div class="text-sm text-gray-600 description-container mb-4">
+              <div class="description-text">${task.description}</div>
+              <button class="text-blue-500 text-xs mt-1 expand-btn hidden">Show more</button>
+            </div>
+          </div>
+          
+          <div class="flex items-start">
+            <div class="delete-button-container flex flex-col items-end" data-task-id="${task.id}">
+              <!-- Edit button -->
+              <a href="/tasks/edit/${task.id}" 
+                class="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded transition-colors duration-200 inline-flex items-center w-24 justify-center mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit
+              </a>
+              
+              <!-- Delete button that transforms to Cancel -->
+              <button 
+                class="delete-button bg-red-100 text-red-600 hover:bg-red-600 hover:text-white text-sm font-medium py-2 px-4 rounded transition-colors duration-200 inline-flex items-center w-24 justify-center" 
+                type="button" 
+                onclick="showDeleteConfirmation(${task.id}, this, event)">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete
+              </button>
+              
+              <!-- Confirm button (initially hidden) -->
+              <button 
+                class="confirm-delete-button bg-red-500 text-white hover:bg-red-600 text-sm font-medium py-2 px-4 rounded transition-colors duration-200 inline-flex items-center w-24 justify-center mt-3" 
+                type="button" 
+                style="display: none;"
+                onclick="deleteTask(${task.id})">
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mt-4 border-t pt-4">
+          <div class="flex flex-wrap items-center">
+            <div class="bg-gray-100 rounded-lg p-3 flex items-center mr-4 mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <div>
+                <div class="text-xs text-gray-500 font-medium">DEADLINE</div>
+                <div class="text-sm font-bold text-gray-800">
+                  ${deadlineDate.toLocaleDateString()} ${deadlineDate.toLocaleTimeString(
+                    [],
+                    { hour: "2-digit", minute: "2-digit" }
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div class="flex items-center mr-4 mb-2">
+              <div class="text-xs text-gray-500 mr-1">Created:</div>
+              <div class="text-sm text-gray-700">${creationDate.toLocaleDateString()}</div>
+            </div>
+            
+            <div class="flex items-center mb-2">
+              <div class="text-xs text-gray-500 mr-1">ID:</div>
+              <div class="text-sm text-gray-700">${task.id}</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      tasksContainer.appendChild(card);
+
+      // Handle description overflow
+      const descText = card.querySelector(".description-text");
+      const expandBtn = card.querySelector(".expand-btn");
+
+      if (descText.scrollHeight > 100) {
+        descText.style.maxHeight = "100px";
+        descText.style.overflow = "hidden";
+        expandBtn.classList.remove("hidden");
+
+        expandBtn.addEventListener("click", function () {
+          if (descText.style.maxHeight) {
+            descText.style.maxHeight = null;
+            descText.style.overflow = null;
+            this.textContent = "Show less";
+          } else {
+            descText.style.maxHeight = "100px";
+            descText.style.overflow = "hidden";
+            this.textContent = "Show more";
+          }
+        });
+      }
+    });
+  }
+
+  function showError(message, duration = 5000) {
+    const errorMsg = document.getElementById("error-message");
+    errorMsg.textContent = message;
+    errorMsg.classList.remove("hidden");
+    setTimeout(() => {
+      errorMsg.classList.add("hidden");
+    }, duration);
+  }
 </script>
-<div class="flex items-start justify-center min-h-screen bg-gray-100 pt-12">
-  <div class="w-full max-w-7/10">
-    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-      <a
-        href="/tasks/add"
-        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        >Add Task</a
+
+<div class="bg-gray-50 min-h-screen py-8 flex justify-center">
+  <!-- Fixed Add Task button with responsive positioning -->
+  <div id="add-task-button" class="fixed right-8 z-20 transition-all duration-200">
+    <a
+      href="/tasks/add"
+      class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded shadow-md transition-colors duration-200 inline-flex items-center"
+    >
+      <span>Add Task</span>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-4 w-4 ml-1"
+        viewBox="0 0 20 20"
+        fill="currentColor"
       >
-      <table class="table-fixed w-full mt-4 bg-gray-300">
-        <thead>
-          <tr class="border text-white bg-black border-gray-500">
-            <th class="w-1/10">ID</th>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Status</th>
-            <th>Deadline</th>
-            <th>Creation Date</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody class="border border-gray-500"></tbody>
-      </table>
+        <path
+          fill-rule="evenodd"
+          d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+          clip-rule="evenodd"
+        />
+      </svg>
+    </a>
+  </div>
+
+  <div class="w-full max-w-3xl px-4 mx-auto">
+    <!-- Simple header with no special positioning -->
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-800">My Tasks</h1>
     </div>
+
+    <!-- Error message -->
+    <div
+      id="error-message"
+      class="bg-red-100 text-red-700 p-4 rounded-md mb-6 hidden"
+    ></div>
+    
+    <!-- Filters and sorting controls -->
+    <div id="filters-container" class="mb-6 bg-white rounded-lg shadow p-4 hidden">
+      <div class="mb-3">
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Filter by Status</h3>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="status-filter px-3 py-1 text-xs font-medium rounded-full border bg-blue-100 text-blue-800 border-blue-300" data-status="all" onclick="setStatusFilter('all')">
+            All
+          </button>
+          <button type="button" class="status-filter px-3 py-1 text-xs font-medium rounded-full border bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200" data-status="complete" onclick="setStatusFilter('complete')">
+            Complete
+          </button>
+          <button type="button" class="status-filter px-3 py-1 text-xs font-medium rounded-full border bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200" data-status="incomplete" onclick="setStatusFilter('incomplete')">
+            Incomplete
+          </button>
+          <button type="button" class="status-filter px-3 py-1 text-xs font-medium rounded-full border bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200" data-status="overdue" onclick="setStatusFilter('overdue')">
+            Overdue
+          </button>
+        </div>
+      </div>
+      
+      <div>
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Sort by</h3>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="sort-option flex items-center px-3 py-1 text-xs font-medium rounded border bg-blue-50 text-blue-600 border-gray-300 hover:bg-gray-100" data-sort="deadline" onclick="setSortOption('deadline')">
+            Deadline <span class="sort-direction ml-1" title="Ascending">↑</span>
+          </button>
+          <button type="button" class="sort-option flex items-center px-3 py-1 text-xs font-medium rounded border bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-100" data-sort="created" onclick="setSortOption('created')">
+            Created Date <span class="sort-direction ml-1 hidden" title="Ascending">↑</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tasks container -->
+    <div id="tasks-container" class="space-y-6 max-w-4xl mx-auto"></div>
   </div>
 </div>
 {{ end }}
