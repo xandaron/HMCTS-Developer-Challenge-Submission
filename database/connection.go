@@ -42,6 +42,7 @@ func Disconnect() error {
 	if db.Ping() == nil {
 		err = db.Close()
 	}
+	db = nil
 	return err
 }
 
