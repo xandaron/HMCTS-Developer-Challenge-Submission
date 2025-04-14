@@ -1,3 +1,175 @@
 {{ define "content" }}
-<h2>Welcome to the Home Page:</h2>
+<div class="bg-gray-100 min-h-screen">
+  <div class="container max-w-4xl mx-auto py-8 px-4">
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+      <div class="p-6">
+        <div id="readme-content" class="markdown-body prose max-w-none">
+          Loading README...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Include Marked.js for Markdown parsing -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<!-- GitHub-like Markdown styling -->
+<style>
+  .markdown-body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial,
+      sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    word-wrap: break-word;
+  }
+  .markdown-body h1,
+  .markdown-body h2 {
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid #eaecef;
+  }
+  .markdown-body h1 {
+    font-size: 2em;
+    margin-top: 24px;
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+  .markdown-body h2 {
+    font-size: 1.5em;
+    margin-top: 24px;
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+  .markdown-body h3 {
+    font-size: 1.25em;
+    margin-top: 24px;
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+  .markdown-body h4 {
+    font-size: 1em;
+    margin-top: 24px;
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+  .markdown-body p,
+  .markdown-body blockquote,
+  .markdown-body ul,
+  .markdown-body ol,
+  .markdown-body dl,
+  .markdown-body table,
+  .markdown-body pre {
+    margin-top: 0;
+    margin-bottom: 16px;
+  }
+  .markdown-body code {
+    padding: 0.2em 0.4em;
+    margin: 0;
+    font-size: 85%;
+    background-color: rgba(27, 31, 35, 0.05);
+    border-radius: 3px;
+  }
+  .markdown-body pre {
+    padding: 16px;
+    overflow: auto;
+    font-size: 85%;
+    line-height: 1.45;
+    background-color: #f6f8fa;
+    border-radius: 3px;
+  }
+  .markdown-body pre code {
+    padding: 0;
+    margin: 0;
+    font-size: 100%;
+    background-color: transparent;
+    border: 0;
+  }
+  .markdown-body ul,
+  .markdown-body ol {
+    padding-left: 2em;
+  }
+  .markdown-body ul {
+    list-style-type: disc;
+  }
+  .markdown-body ol {
+    list-style-type: decimal;
+  }
+  .markdown-body table {
+    border-spacing: 0;
+    border-collapse: collapse;
+    display: block;
+    width: 100%;
+    overflow: auto;
+  }
+  .markdown-body table th,
+  .markdown-body table td {
+    padding: 6px 13px;
+    border: 1px solid #dfe2e5;
+  }
+  .markdown-body table tr {
+    background-color: #fff;
+    border-top: 1px solid #c6cbd1;
+  }
+  .markdown-body table tr:nth-child(2n) {
+    background-color: #f6f8fa;
+  }
+  .markdown-body blockquote {
+    padding: 0 1em;
+    color: #6a737d;
+    border-left: 0.25em solid #dfe2e5;
+  }
+</style>
+
+<script>
+  // Fetch the README.md from the project root
+  document.addEventListener("DOMContentLoaded", async () => {
+    try {
+      // Assuming the README.md is served at this path
+      const response = await fetch("/static/README.md");
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to load README.md: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const markdown = await response.text();
+
+      // Parse markdown using Marked library
+      const htmlContent = marked.parse(markdown);
+
+      // Insert the HTML content
+      document.getElementById("readme-content").innerHTML = htmlContent;
+
+      // If there are code blocks, we can add syntax highlighting
+      if (document.querySelectorAll("pre code").length > 0) {
+        // Optional: load highlight.js for syntax highlighting
+        const highlightJs = document.createElement("script");
+        highlightJs.src =
+          "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/highlight.min.js";
+        highlightJs.onload = () => {
+          document.querySelectorAll("pre code").forEach((block) => {
+            hljs.highlightElement(block);
+          });
+        };
+        document.head.appendChild(highlightJs);
+
+        // Add highlight.js styles
+        const highlightCss = document.createElement("link");
+        highlightCss.rel = "stylesheet";
+        highlightCss.href =
+          "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/github.min.css";
+        document.head.appendChild(highlightCss);
+      }
+    } catch (error) {
+      console.error("Error loading README:", error);
+      document.getElementById("readme-content").innerHTML = `
+        <div class="p-4 bg-red-50 text-red-700 rounded-md">
+          <p>Error loading README.md: ${error.message}</p>
+          <p class="mt-2 text-sm">Make sure your README.md file is accessible at /static/README.md or update the fetch path in this script.</p>
+        </div>
+      `;
+    }
+  });
+</script>
 {{ end }}

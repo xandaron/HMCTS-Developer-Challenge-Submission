@@ -46,6 +46,9 @@ func main() {
 	http.HandleFunc("/tasks/edit/", servePageTask(templates[TasksAddEditPage], true))
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	http.HandleFunc("/static/README.md", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "README.md")
+	})
 
 	go session.SessionCleanupRoutine()
 

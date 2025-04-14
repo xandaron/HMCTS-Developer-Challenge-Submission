@@ -21,6 +21,7 @@ COPY --from=build /server ./
 COPY ./static ./static
 COPY ./templates ./templates
 COPY ./certs ./certs
+COPY ./README.md ./README.md
 
 USER nonroot:nonroot
 
