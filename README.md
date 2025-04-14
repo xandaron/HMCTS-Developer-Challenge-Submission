@@ -5,8 +5,8 @@
 This repository contains my submission for the **DTS Developer Technical Test**. The project focuses on building a task management system for HMCTS caseworkers. The API is fully functional and built in **Go**, with **Docker** used for containerized deployment and a **MySQL** database.
 
 > ✅ API functionality is complete  
-> ❌ Unit tests not yet implemented  
-> ❌ Frontend UI is minimal and currently under development
+> ✅ UI implemented with modern design using Tailwind CSS  
+> ❌ Unit tests not yet implemented
 
 ---
 
@@ -62,8 +62,8 @@ To run the project locally without Docker:
 - Backend: Golang (Go)
 - Database: MySQL
 - Containerization: Docker + Docker Compose
-- Templating / Frontend: HTML templates (WIP)
-- Styles: TailwindCSS
+- Frontend: HTML templates with responsive design
+- Styling: TailwindCSS v4.1 with custom components
 
 ## 🏗️ Application Architecture
 
@@ -84,7 +84,15 @@ The application uses session-based authentication:
 3. Protected routes check for a valid session before allowing access
 4. Sessions expire after 5 minutes of inactivity
 
-<!-- ## 📱 Screenshots -->
+## 🎨 UI Features
+
+The application uses Tailwind CSS v4.1 to implement a clean, modern interface:
+
+- **Consistent Design System** - Uniform color palette and spacing across all pages
+- **Responsive Layout** - Fully mobile responsive from small screens to desktops
+- **Interactive Components** - Dynamic task cards with expand/collapse functionality
+- **Modern Form Controls** - Validated inputs with clear error messaging
+- **Accessibility Focus** - Proper contrast ratios and semantic HTML structure
 
 ## 📚 API Documentation
 
