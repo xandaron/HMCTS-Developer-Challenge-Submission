@@ -1,5 +1,15 @@
 {{ define "content" }}
 <script>
+  // Add this helper function at the top level
+  function getTaskFormData() {
+    return {
+      name: document.getElementById("name").value,
+      description: document.getElementById("description").value,
+      status: document.getElementById("status").value,
+      deadline: document.getElementById("deadline").value,
+    };
+  }
+
   async function getTaskData() {
     const taskID = window.location.pathname.split("/").pop();
     const response = await fetch(`/api/tasks/${taskID}`);
@@ -21,15 +31,7 @@
   }
 
   async function editTask() {
-    const task = {
-      name: document.getElementById("name").value,
-      description: document.getElementById("description").value,
-      status: document.getElementById("status").value,
-      deadline: document.getElementById("deadline").value,
-    };
-
-    console.log(task);
-
+    const task = getTaskFormData();
     const taskID = window.location.pathname.split("/").pop();
     const response = await fetch(`/api/tasks/${taskID}`, {
       method: "PUT",
@@ -47,13 +49,7 @@
   }
 
   async function addTask() {
-    const task = {
-      name: document.getElementById("name").value,
-      description: document.getElementById("description").value,
-      status: document.getElementById("status").value,
-      deadline: document.getElementById("deadline").value,
-    };
-
+    const task = getTaskFormData();
     const response = await fetch("/api/tasks/", {
       method: "POST",
       headers: {
@@ -69,25 +65,34 @@
     }
   }
 
-  // Add error handling function
+  // Enhance error handling with clearing timeout
   function showError(message) {
     const errorEl = document.getElementById("error-message");
+    
+    // Clear any existing timeout
+    if (window.errorTimeout) {
+      clearTimeout(window.errorTimeout);
+    }
+    
     errorEl.textContent = message;
     errorEl.classList.remove("hidden");
-    setTimeout(() => {
+    
+    window.errorTimeout = setTimeout(() => {
       errorEl.classList.add("hidden");
     }, 5000);
   }
 
-  // Form validation
+  // Improve the validation function with better error messaging
   function validateForm() {
     const nameField = document.getElementById("name");
     const deadlineField = document.getElementById("deadline");
     
     let isValid = true;
+    let errorMessages = [];
     
     if (!nameField.value.trim()) {
       nameField.classList.add('border-red-500');
+      errorMessages.push("Task name is required");
       isValid = false;
     } else {
       nameField.classList.remove('border-red-500');
@@ -95,9 +100,14 @@
     
     if (!deadlineField.value) {
       deadlineField.classList.add('border-red-500');
+      errorMessages.push("Deadline is required");
       isValid = false;
     } else {
       deadlineField.classList.remove('border-red-500');
+    }
+    
+    if (!isValid) {
+      showError(errorMessages.join(", "));
     }
     
     return isValid;
