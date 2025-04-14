@@ -1,5 +1,5 @@
 {{ define "content" }}
-<div class="bg-gray-100 min-h-screen">
+<div class="min-h-screen">
   <div class="container max-w-4xl mx-auto py-8 px-4">
     <div class="bg-white rounded-lg shadow-md overflow-hidden">
       <div class="p-6">
@@ -121,55 +121,57 @@
 </style>
 
 <script>
-  // Fetch the README.md from the project root
-  document.addEventListener("DOMContentLoaded", async () => {
+  // Improved README loading with better error handling
+  document.addEventListener("DOMContentLoaded", loadReadme);
+  
+  async function loadReadme() {
+    const readmeContainer = document.getElementById("readme-content");
+    
     try {
-      // Assuming the README.md is served at this path
       const response = await fetch("/static/README.md");
-
+      
       if (!response.ok) {
-        throw new Error(
-          `Failed to load README.md: ${response.status} ${response.statusText}`
-        );
+        throw new Error(`Status: ${response.status} ${response.statusText}`);
       }
-
+      
       const markdown = await response.text();
-
-      // Parse markdown using Marked library
-      const htmlContent = marked.parse(markdown);
-
-      // Insert the HTML content
-      document.getElementById("readme-content").innerHTML = htmlContent;
-
-      // If there are code blocks, we can add syntax highlighting
+      readmeContainer.innerHTML = marked.parse(markdown);
+      
+      // Load syntax highlighting if needed
       if (document.querySelectorAll("pre code").length > 0) {
-        // Optional: load highlight.js for syntax highlighting
-        const highlightJs = document.createElement("script");
-        highlightJs.src =
-          "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/highlight.min.js";
-        highlightJs.onload = () => {
-          document.querySelectorAll("pre code").forEach((block) => {
-            hljs.highlightElement(block);
-          });
-        };
-        document.head.appendChild(highlightJs);
-
-        // Add highlight.js styles
-        const highlightCss = document.createElement("link");
-        highlightCss.rel = "stylesheet";
-        highlightCss.href =
-          "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/github.min.css";
-        document.head.appendChild(highlightCss);
+        loadSyntaxHighlighting();
       }
     } catch (error) {
       console.error("Error loading README:", error);
-      document.getElementById("readme-content").innerHTML = `
-        <div class="p-4 bg-red-50 text-red-700 rounded-md">
-          <p>Error loading README.md: ${error.message}</p>
-          <p class="mt-2 text-sm">Make sure your README.md file is accessible at /static/README.md or update the fetch path in this script.</p>
-        </div>
-      `;
+      readmeContainer.innerHTML = createErrorMessage(error.message);
     }
-  });
+  }
+  
+  function createErrorMessage(message) {
+    return `
+      <div class="p-4 bg-red-50 text-red-700 rounded-md">
+        <p>Error loading README.md: ${message}</p>
+        <p class="mt-2 text-sm">Make sure your README.md file is accessible at /static/README.md or update the fetch path in this script.</p>
+      </div>
+    `;
+  }
+  
+  function loadSyntaxHighlighting() {
+    // Load highlight.js for syntax highlighting
+    const highlightJs = document.createElement("script");
+    highlightJs.src = "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/highlight.min.js";
+    highlightJs.onload = () => {
+      document.querySelectorAll("pre code").forEach(block => {
+        hljs.highlightElement(block);
+      });
+    };
+    document.head.appendChild(highlightJs);
+    
+    // Add highlight.js styles
+    const highlightCss = document.createElement("link");
+    highlightCss.rel = "stylesheet";
+    highlightCss.href = "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/github.min.css";
+    document.head.appendChild(highlightCss);
+  }
 </script>
 {{ end }}

@@ -9,32 +9,28 @@
     sortDirection: 'asc'
   };
 
-  // Add document click handler to cancel delete when clicking outside
-  document.addEventListener(
-    "click",
-    function (event) {
-      if (
-        activeDeleteContainer &&
-        !activeDeleteContainer.contains(event.target)
-      ) {
-        resetDeleteButton(activeDeleteContainer);
-      }
-    },
-    true
-  );
-
+  // Setup event listeners
+  document.addEventListener("click", handleDocumentClick, true);
+  
   document.addEventListener('DOMContentLoaded', function() {
-    // Initialize UI components
-    document.querySelectorAll(".confirm-delete-button").forEach((button) => {
-      button.style.display = "none";
-    });
-    
-    // Setup button positioning
+    initializeUI();
     setupAddTaskButtonPositioning();
-    
-    // Load tasks data
     getTasks();
   });
+  
+  // Consolidated document click handler
+  function handleDocumentClick(event) {
+    if (activeDeleteContainer && !activeDeleteContainer.contains(event.target)) {
+      resetDeleteButton(activeDeleteContainer);
+    }
+  }
+  
+  // UI initialization function
+  function initializeUI() {
+    document.querySelectorAll(".confirm-delete-button").forEach(button => {
+      button.style.display = "none";
+    });
+  }
 
   // Add scroll event listener to handle button positioning
   function setupAddTaskButtonPositioning() {
@@ -43,19 +39,15 @@
     
     function updateButtonPosition() {
       const navbarBottom = navbar?.getBoundingClientRect().bottom;
-      
-      // If navbar is not visible (scrolled past it) or doesn't exist
-      if (!navbarBottom || navbarBottom <= 0) {
-        addTaskButton.style.top = '1rem'; // Move button to top
-      } else {
-        addTaskButton.style.top = `${navbarBottom + 16}px`; // Position below navbar with 16px padding
-      }
+      addTaskButton.style.top = (!navbarBottom || navbarBottom <= 0) 
+        ? '1rem' // Move button to top when navbar not visible
+        : `${navbarBottom + 16}px`; // Position below navbar with padding
     }
     
     // Update button position on page load
     updateButtonPosition();
     
-    // Update button position on scroll (throttled for performance)
+    // Throttled scroll handler
     let ticking = false;
     window.addEventListener('scroll', function() {
       if (!ticking) {
@@ -67,7 +59,6 @@
       }
     });
     
-    // Update button position on window resize
     window.addEventListener('resize', updateButtonPosition);
   }
 
@@ -171,9 +162,7 @@
     try {
       const response = await fetch("/api/tasks", {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
 
       if (!response.ok) {
@@ -183,23 +172,26 @@
       allTasks = await response.json();
       
       if (allTasks.length === 0) {
-        const tasksContainer = document.getElementById("tasks-container");
-        tasksContainer.innerHTML = `
-          <div class="text-center py-8 text-gray-500">
-            <p class="text-xl">No tasks found</p>
-            <p class="mt-2">Click the "Add Task" button to create your first task</p>
-          </div>
-        `;
-        document.getElementById("filters-container").classList.add("hidden");
+        renderEmptyTasksMessage();
         return;
       }
 
-      // Show filters when tasks exist
       document.getElementById("filters-container").classList.remove("hidden");
       applyFilters();
     } catch (error) {
       showError(`Failed to fetch tasks: ${error.message}`);
     }
+  }
+  
+  function renderEmptyTasksMessage() {
+    const tasksContainer = document.getElementById("tasks-container");
+    tasksContainer.innerHTML = `
+      <div class="text-center py-8 text-gray-500">
+        <p class="text-xl">No tasks found</p>
+        <p class="mt-2">Click the "Add Task" button to create your first task</p>
+      </div>
+    `;
+    document.getElementById("filters-container").classList.add("hidden");
   }
 
   function applyFilters() {
@@ -300,130 +292,145 @@
     const tasksContainer = document.getElementById("tasks-container");
     tasksContainer.innerHTML = "";
 
-    tasks.forEach((task) => {
-      // Define status badge color
-      let statusColor = "gray";
-      if (task.status === "COMPLETE") statusColor = "green";
-      else if (task.status === "INCOMPLETE") statusColor = "yellow";
-      else if (task.status === "Overdue") statusColor = "red";
+    tasks.forEach(renderTaskCard);
+  }
+  
+  function renderTaskCard(task) {
+    // Get status color
+    let statusColor = task.status === "COMPLETE" ? "green" : 
+                      task.status === "INCOMPLETE" ? "yellow" :
+                      task.status === "Overdue" ? "red" : "gray";
 
-      const deadlineDate = new Date(task.deadline);
-      const creationDate = new Date(task.created_at);
+    const deadlineDate = new Date(task.deadline);
+    const creationDate = new Date(task.created_at);
 
-      const card = document.createElement("div");
-      card.className =
-        "bg-white rounded-lg shadow-md p-6 mb-4 hover:shadow-lg transition-shadow duration-200 relative";
-      card.innerHTML = `
-        <div class="flex justify-between items-start">
-          <div class="w-3/4">
-            <div class="flex items-center mb-2">
-              <h3 class="text-xl font-semibold mr-4">${task.name}</h3>
-              <span class="bg-${statusColor}-100 text-${statusColor}-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                ${task.status}
-              </span>
-            </div>
-            
-            <div class="text-sm text-gray-600 description-container mb-4">
-              <div class="description-text">${task.description}</div>
-              <button class="text-blue-500 text-xs mt-1 expand-btn hidden">Show more</button>
-            </div>
+    const card = document.createElement("div");
+    card.className = "bg-white rounded-lg shadow-md p-6 mb-4 hover:shadow-lg transition-shadow duration-200 relative";
+    card.innerHTML = `
+      <div class="flex justify-between items-start">
+        <div class="w-3/4">
+          <div class="flex items-center mb-2">
+            <h3 class="text-xl font-semibold mr-4">${task.name}</h3>
+            <span class="bg-${statusColor}-100 text-${statusColor}-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+              ${task.status}
+            </span>
           </div>
           
-          <div class="flex items-start">
-            <div class="delete-button-container flex flex-col items-end" data-task-id="${task.id}">
-              <!-- Edit button -->
-              <a href="/tasks/edit/${task.id}" 
-                class="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded transition-colors duration-200 inline-flex items-center w-24 justify-center mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Edit
-              </a>
-              
-              <!-- Delete button that transforms to Cancel -->
-              <button 
-                class="delete-button bg-red-100 text-red-600 hover:bg-red-600 hover:text-white text-sm font-medium py-2 px-4 rounded transition-colors duration-200 inline-flex items-center w-24 justify-center" 
-                type="button" 
-                onclick="showDeleteConfirmation(${task.id}, this, event)">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                Delete
-              </button>
-              
-              <!-- Confirm button (initially hidden) -->
-              <button 
-                class="confirm-delete-button bg-red-500 text-white hover:bg-red-600 text-sm font-medium py-2 px-4 rounded transition-colors duration-200 inline-flex items-center w-24 justify-center mt-3" 
-                type="button" 
-                style="display: none;"
-                onclick="deleteTask(${task.id})">
-                Confirm
-              </button>
-            </div>
+          <div class="text-sm text-gray-600 description-container mb-4">
+            <div class="description-text">${task.description}</div>
+            <button class="text-blue-500 text-xs mt-1 expand-btn hidden">Show more</button>
           </div>
         </div>
         
-        <div class="mt-4 border-t pt-4">
-          <div class="flex flex-wrap items-center">
-            <div class="bg-gray-100 rounded-lg p-3 flex items-center mr-4 mb-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        <div class="flex items-start">
+          <div class="delete-button-container flex flex-col items-end" data-task-id="${task.id}">
+            <!-- Edit button -->
+            <a href="/tasks/edit/${task.id}" 
+              class="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded transition-colors duration-200 inline-flex items-center w-24 justify-center mb-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-              <div>
-                <div class="text-xs text-gray-500 font-medium">DEADLINE</div>
-                <div class="text-sm font-bold text-gray-800">
-                  ${deadlineDate.toLocaleDateString()} ${deadlineDate.toLocaleTimeString(
-                    [],
-                    { hour: "2-digit", minute: "2-digit" }
-                  )}
-                </div>
-              </div>
-            </div>
+              Edit
+            </a>
             
-            <div class="flex items-center mr-4 mb-2">
-              <div class="text-xs text-gray-500 mr-1">Created:</div>
-              <div class="text-sm text-gray-700">${creationDate.toLocaleDateString()}</div>
-            </div>
+            <!-- Delete button that transforms to Cancel -->
+            <button 
+              class="delete-button bg-red-100 text-red-600 hover:bg-red-600 hover:text-white text-sm font-medium py-2 px-4 rounded transition-colors duration-200 inline-flex items-center w-24 justify-center" 
+              type="button" 
+              onclick="showDeleteConfirmation(${task.id}, this, event)">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Delete
+            </button>
             
-            <div class="flex items-center mb-2">
-              <div class="text-xs text-gray-500 mr-1">ID:</div>
-              <div class="text-sm text-gray-700">${task.id}</div>
-            </div>
+            <!-- Confirm button (initially hidden) -->
+            <button 
+              class="confirm-delete-button bg-red-500 text-white hover:bg-red-600 text-sm font-medium py-2 px-4 rounded transition-colors duration-200 inline-flex items-center w-24 justify-center mt-3" 
+              type="button" 
+              style="display: none;"
+              onclick="deleteTask(${task.id})">
+              Confirm
+            </button>
           </div>
         </div>
-      `;
+      </div>
+      
+      <div class="mt-4 border-t pt-4">
+        <div class="flex flex-wrap items-center">
+          <div class="bg-gray-100 rounded-lg p-3 flex items-center mr-4 mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <div>
+              <div class="text-xs text-gray-500 font-medium">DEADLINE</div>
+              <div class="text-sm font-bold text-gray-800">
+                ${deadlineDate.toLocaleDateString()} ${deadlineDate.toLocaleTimeString(
+                  [],
+                  { hour: "2-digit", minute: "2-digit" }
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div class="flex items-center mr-4 mb-2">
+            <div class="text-xs text-gray-500 mr-1">Created:</div>
+            <div class="text-sm text-gray-700">${creationDate.toLocaleDateString()}</div>
+          </div>
+          
+          <div class="flex items-center mb-2">
+            <div class="text-xs text-gray-500 mr-1">ID:</div>
+            <div class="text-sm text-gray-700">${task.id}</div>
+          </div>
+        </div>
+      </div>
+    `;
 
-      tasksContainer.appendChild(card);
+    const tasksContainer = document.getElementById("tasks-container");
+    tasksContainer.appendChild(card);
 
-      // Handle description overflow
-      const descText = card.querySelector(".description-text");
-      const expandBtn = card.querySelector(".expand-btn");
+    // Handle description overflow
+    handleDescriptionOverflow(card);
+  }
+  
+  function handleDescriptionOverflow(cardElement) {
+    const descText = cardElement.querySelector(".description-text");
+    const expandBtn = cardElement.querySelector(".expand-btn");
 
-      if (descText.scrollHeight > 100) {
-        descText.style.maxHeight = "100px";
-        descText.style.overflow = "hidden";
-        expandBtn.classList.remove("hidden");
+    if (descText.scrollHeight > 100) {
+      descText.style.maxHeight = "100px";
+      descText.style.overflow = "hidden";
+      expandBtn.classList.remove("hidden");
 
-        expandBtn.addEventListener("click", function () {
-          if (descText.style.maxHeight) {
-            descText.style.maxHeight = null;
-            descText.style.overflow = null;
-            this.textContent = "Show less";
-          } else {
-            descText.style.maxHeight = "100px";
-            descText.style.overflow = "hidden";
-            this.textContent = "Show more";
-          }
-        });
-      }
-    });
+      expandBtn.addEventListener("click", function() {
+        if (descText.style.maxHeight) {
+          // Expand
+          descText.style.maxHeight = null;
+          descText.style.overflow = null;
+          this.textContent = "Show less";
+        } else {
+          // Collapse
+          descText.style.maxHeight = "100px";
+          descText.style.overflow = "hidden";
+          this.textContent = "Show more";
+        }
+      });
+    }
   }
 
+  // Improved error message function
   function showError(message, duration = 5000) {
     const errorMsg = document.getElementById("error-message");
+    
+    // Clear any existing timeout
+    if (window.errorTimeout) {
+      clearTimeout(window.errorTimeout);
+    }
+    
     errorMsg.textContent = message;
     errorMsg.classList.remove("hidden");
-    setTimeout(() => {
+    
+    window.errorTimeout = setTimeout(() => {
       errorMsg.classList.add("hidden");
     }, duration);
   }

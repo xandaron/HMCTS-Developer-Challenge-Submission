@@ -1,13 +1,37 @@
 {{ define "content" }}
 <script>
-  async function action() {
-    // Clear previous error states
-    clearErrors();
+  // Main authentication function
+  async function authenticate() {
+    if (!validateForm()) return;
 
+    const credentials = {
+      username: document.getElementById("username").value.trim(),
+      password: document.getElementById("password").value.trim()
+    };
+
+    try {
+      const response = await fetch("/api/{{ .Action }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(credentials)
+      });
+
+      if (response.ok) {
+        window.location.href = "/tasks";
+      } else {
+        showFormError(`Authentication failed (Status: ${response.status})`);
+      }
+    } catch (error) {
+      showFormError(`Request failed: ${error.message}`);
+    }
+  }
+
+  // Form validation
+  function validateForm() {
+    clearErrors();
+    
     const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value.trim();
-
-    // Validate fields
     let isValid = true;
 
     if (!username) {
@@ -20,33 +44,10 @@
       isValid = false;
     }
 
-    if (!isValid) {
-      return;
-    }
-
-    const form = {
-      username,
-      password,
-    };
-
-    const response = await fetch("/api/{{ .Action }}", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(form),
-    });
-
-    if (response.ok) {
-      window.location.href = "/tasks";
-    } else {
-      // Instead of alert, show error message in the UI
-      const errorContainer = document.getElementById("form-error");
-      errorContainer.textContent = `Authentication failed (Status: ${response.status})`;
-      errorContainer.classList.remove("hidden");
-    }
+    return isValid;
   }
 
+  // UI error handling functions
   function showFieldError(fieldId, message) {
     const field = document.getElementById(fieldId);
     field.classList.add("border-red-500");
@@ -56,6 +57,12 @@
     errorElement.classList.remove("hidden");
   }
 
+  function showFormError(message) {
+    const formError = document.getElementById("form-error");
+    formError.textContent = message;
+    formError.classList.remove("hidden");
+  }
+
   function clearErrors() {
     // Clear form error
     const formError = document.getElementById("form-error");
@@ -63,35 +70,32 @@
     formError.classList.add("hidden");
 
     // Clear field errors
-    ["username", "password"].forEach((fieldId) => {
-      const field = document.getElementById(fieldId);
-      field.classList.remove("border-red-500");
+    ["username", "password"].forEach(clearFieldError);
+  }
+  
+  function clearFieldError(fieldId) {
+    const field = document.getElementById(fieldId);
+    field.classList.remove("border-red-500");
 
-      const errorElement = document.getElementById(`${fieldId}-error`);
-      errorElement.textContent = "";
-      errorElement.classList.add("hidden");
-    });
+    const errorElement = document.getElementById(`${fieldId}-error`);
+    errorElement.textContent = "";
+    errorElement.classList.add("hidden");
   }
 
+  // Event listeners
   document.addEventListener("DOMContentLoaded", function () {
-    document
-      .getElementById("username")
-      .addEventListener("keydown", function (event) {
-        if (event.key === "Enter") {
-          document.getElementById("password").focus();
-        }
-      });
+    // Tab navigation with Enter key
+    document.getElementById("username").addEventListener("keydown", function (event) {
+      if (event.key === "Enter") document.getElementById("password").focus();
+    });
 
-    document
-      .getElementById("password")
-      .addEventListener("keydown", function (event) {
-        if (event.key === "Enter") {
-          action();
-        }
-      });
+    // Submit form with Enter key in password field
+    document.getElementById("password").addEventListener("keydown", function (event) {
+      if (event.key === "Enter") authenticate();
+    });
 
-    // Clear field errors when user starts typing
-    ["username", "password"].forEach((fieldId) => {
+    // Clear field errors when typing
+    ["username", "password"].forEach(fieldId => {
       document.getElementById(fieldId).addEventListener("input", function () {
         this.classList.remove("border-red-500");
         document.getElementById(`${fieldId}-error`).classList.add("hidden");
@@ -151,7 +155,7 @@
         <button
           class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
           type="button"
-          onclick="action()"
+          onclick="authenticate()"
         >
           {{ .SubmitText }}
         </button>

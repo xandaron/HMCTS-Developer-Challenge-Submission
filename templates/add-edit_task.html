@@ -1,6 +1,6 @@
 {{ define "content" }}
 <script>
-  // Add this helper function at the top level
+  // Form data handler
   function getTaskFormData() {
     return {
       name: document.getElementById("name").value,
@@ -10,66 +10,77 @@
     };
   }
 
+  // Single fetch handler for API requests
+  async function handleTaskRequest(url, method, data) {
+    try {
+      const response = await fetch(url, {
+        method: method,
+        headers: { "Content-Type": "application/json" },
+        body: data ? JSON.stringify(data) : undefined,
+      });
+      
+      return { success: response.ok, status: response.status, data: response.ok && method === "GET" ? await response.json() : null };
+    } catch (error) {
+      console.error("API request failed:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
   async function getTaskData() {
     const taskID = window.location.pathname.split("/").pop();
-    const response = await fetch(`/api/tasks/${taskID}`);
-    if (response.status === 200) {
-      const task = await response.json();
-      document.getElementById("name").value = task.name;
-      document.getElementById("description").value = task.description;
-      document.getElementById("status").value = task.status;
-      
-      // Format the deadline for datetime-local input
-      if (task.deadline) {
-        const date = new Date(task.deadline);
-        // Format to YYYY-MM-DDThh:mm
-        document.getElementById("deadline").value = date.toISOString().slice(0, 16);
-      }
+    const result = await handleTaskRequest(`/api/tasks/${taskID}`, "GET");
+    
+    if (result.success) {
+      const task = result.data;
+      populateForm(task);
     } else {
-      showError(`Failed to fetch task. Status: ${response.status}`);
+      showError(`Failed to fetch task. Status: ${result.status}`);
+    }
+  }
+  
+  function populateForm(task) {
+    document.getElementById("name").value = task.name;
+    document.getElementById("description").value = task.description;
+    document.getElementById("status").value = task.status;
+    
+    // Format the deadline for datetime-local input
+    if (task.deadline) {
+      const date = new Date(task.deadline);
+      document.getElementById("deadline").value = date.toISOString().slice(0, 16);
     }
   }
 
   async function editTask() {
+    if (!validateForm()) return;
+    
     const task = getTaskFormData();
     const taskID = window.location.pathname.split("/").pop();
-    const response = await fetch(`/api/tasks/${taskID}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(task),
-    });
-
-    if (response.status === 204) {
+    const result = await handleTaskRequest(`/api/tasks/${taskID}`, "PUT", task);
+    
+    if (result.success) {
       window.location.href = "/tasks";
     } else {
-      showError(`Failed to edit task. Status: ${response.status}`);
+      showError(`Failed to edit task. Status: ${result.status}`);
     }
   }
 
   async function addTask() {
+    if (!validateForm()) return;
+    
     const task = getTaskFormData();
-    const response = await fetch("/api/tasks/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(task),
-    });
-
-    if (response.status === 201) {
+    const result = await handleTaskRequest("/api/tasks/", "POST", task);
+    
+    if (result.success) {
       window.location.href = "/tasks";
     } else {
-      showError(`Failed to add task. Status: ${response.status}`);
+      showError(`Failed to add task. Status: ${result.status}`);
     }
   }
 
-  // Enhance error handling with clearing timeout
+  // Error handling with clearing timeout
   function showError(message) {
     const errorEl = document.getElementById("error-message");
     
-    // Clear any existing timeout
     if (window.errorTimeout) {
       clearTimeout(window.errorTimeout);
     }
@@ -82,7 +93,7 @@
     }, 5000);
   }
 
-  // Improve the validation function with better error messaging
+  // Validation with better error messaging
   function validateForm() {
     const nameField = document.getElementById("name");
     const deadlineField = document.getElementById("deadline");
@@ -90,6 +101,7 @@
     let isValid = true;
     let errorMessages = [];
     
+    // Validate name
     if (!nameField.value.trim()) {
       nameField.classList.add('border-red-500');
       errorMessages.push("Task name is required");
@@ -98,6 +110,7 @@
       nameField.classList.remove('border-red-500');
     }
     
+    // Validate deadline
     if (!deadlineField.value) {
       deadlineField.classList.add('border-red-500');
       errorMessages.push("Deadline is required");
@@ -106,6 +119,7 @@
       deadlineField.classList.remove('border-red-500');
     }
     
+    // Show error message if validation failed
     if (!isValid) {
       showError(errorMessages.join(", "));
     }
@@ -194,7 +208,7 @@
           {{ if .Edit }}
           <button 
             type="button"
-            onclick="if(validateForm()) editTask()"
+            onclick="editTask()"
             class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
           >
             Update Task
@@ -203,7 +217,7 @@
           {{ else }}
           <button 
             type="button"
-            onclick="if(validateForm()) addTask()"
+            onclick="addTask()"
             class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
           >
             Create Task
