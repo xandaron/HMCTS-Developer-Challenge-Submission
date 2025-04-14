@@ -42,7 +42,7 @@ To run the project locally without Docker:
    ```
 4. Initialize the database schema:
    ```bash
-   mysql -u root -p mydb < database/seed/init.sql
+   mysql -u root -p mydb < database/seed/init-prod.sql
    ```
 5. Set up the environment variables:
    ```
@@ -413,6 +413,53 @@ Stop and remove containers
 docker-compose down
 ```
 
+## 🧪 Running Tests
+
+### Prerequisites for Local Testing
+
+Before running tests locally, you'll need to:
+
+1. Set up a test MySQL database:
+   ```bash
+   mysql -u root -p
+   CREATE DATABASE testdb;
+   exit;
+   mysql -u root -p mydb < database/seed/init-test.sql
+   ```
+
+2. Set up environment variables for testing:
+   ```bash
+   export DB_HOST=localhost
+   export DB_PORT=3306
+   export DB_USER=user
+   export DB_PASSWORD=password
+   export DB_NAME=mydb_test
+   export TEST_MODE=true
+   ```
+
+To run the test suite:
+
+```bash
+# Run all tests
+go test ./...
+
+# Run tests with coverage report
+go test -cover ./...
+
+# Run tests for a specific package
+go test ./api
+
+# Run tests verbosely to see each test running
+go test -v ./...
+```
+
+### Running Tests in Docker
+
+```bash
+docker-compose up --build -d test-db
+docker-compose up --build test-runner
+```
+
 ## ✅ Task Checklist
 
 - ✅ Dockerized deployment
@@ -425,6 +472,6 @@ docker-compose down
 - ✅ API error handling
 - ✅ API documentation
 - ✅ Database integration
-- ❌ Unit tests
+- ✅ Unit tests
 - ✅ Basic frontend implementation
 - ✅ User authentication

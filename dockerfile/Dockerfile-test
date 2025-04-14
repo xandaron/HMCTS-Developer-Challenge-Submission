@@ -1,0 +1,15 @@
+FROM golang:1.24.2
+
+WORKDIR /app
+
+# Copy the source code
+COPY . .
+
+# Install required dependencies
+RUN go mod download
+
+# Set environment for testing
+ENV CGO_ENABLED=0
+
+# Add CMD to run tests
+CMD ["go", "test", "./...", "-v"]
