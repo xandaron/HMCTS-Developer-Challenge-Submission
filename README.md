@@ -375,25 +375,6 @@ All 500 errors are logged internally for debugging.
 | creation_time | timestamp                     | NO   |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
 | deadline      | timestamp                     | NO   |     | NULL              |                   |
 
-## 🧪 Testing (Planned)
-
-Unit testing setup is not yet complete. Planned testing strategy:
-
-- **Unit tests** for core business logic using Go's testing package
-- **Integration tests** for API endpoints
-- **Database tests** with a test database
-- **End-to-end tests** for critical user flows
-
-## 🔮 Future Improvements
-
-1. **Complete unit test implementation** for all components
-2. Enhance the frontend with a modern JavaScript framework (React/Vue)
-3. Implement more robust error handling and validation
-4. Implement sorting and filtering capabilities
-5. Add user profile management
-6. Implement password reset functionality
-7. Add task categories and priority levels
-
 ## 📌 Notes
 
 - While the frontend is currently basic (using server-side rendered HTML), the API is fully decoupled and can be easily integrated with any modern frontend framework.
