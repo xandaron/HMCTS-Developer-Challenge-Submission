@@ -6,7 +6,7 @@ This repository contains my submission for the **DTS Developer Technical Test**.
 
 > ✅ API functionality is complete  
 > ✅ UI implemented with modern design using Tailwind CSS  
-> ❌ Unit tests not yet implemented
+> ✅ Unit tests
 
 ---
 
